@@ -1,0 +1,26 @@
+{
+  "name": "group-project-404-not-found",
+  "version": "1.0.0",
+  "description": "Welcome to the CS732 project. We look forward to seeing the amazing things you create this semester! This is your team's repository.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UOA-CS732-S1-2026/group-project-404-not-found.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/UOA-CS732-S1-2026/group-project-404-not-found/issues"
+  },
+  "homepage": "https://github.com/UOA-CS732-S1-2026/group-project-404-not-found#readme",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1"
+  }
+}
