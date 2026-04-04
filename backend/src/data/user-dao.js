@@ -28,7 +28,7 @@ export let users = [
   }
 ]
 
-//Sign up
+//Register
 export async function createUser(data){
     const newUser = {
         id: users.length +1,
@@ -52,7 +52,7 @@ export async function verifyUserPassword(user, password){
 
 //Modify user infomation
 export async function updateMyProfile(id, data){
-    const user = users.find(u=> u.id === userId);
+    const user = users.find(u=> u.id === id);
     if(!user) return null;
     Object.assign(user, data);
     return user;
