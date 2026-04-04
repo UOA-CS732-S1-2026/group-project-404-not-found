@@ -7,7 +7,7 @@ import authRoutes from "./api-auth.js";
 router.use("/", authRoutes);
 
 //User
-import userRoutes from "./api-user.js";
+import userRoutes from "./api-admin.js";
 router.use("/users", userRoutes);
 
 //My Profile
