@@ -31,7 +31,7 @@ export let users = [
     username: "james",
     firstname: "James",
     lastname: "Jang",
-    password: bcrypt.hashSync("james", 10),
+    password: bcrypt.hashSync("james123", 10),
     description: "Good to see you",
     dob: "1994-03-16",
     avatar_id: 3,
