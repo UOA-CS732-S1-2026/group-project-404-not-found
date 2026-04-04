@@ -25,6 +25,17 @@ export let users = [
     dob: "1999-05-05",
     avatar_id: 2,
     is_admin: 0
+  },
+   {
+    id: 3,
+    username: "james",
+    firstname: "James",
+    lastname: "Jang",
+    password: bcrypt.hashSync("james", 10),
+    description: "Good to see you",
+    dob: "1994-03-16",
+    avatar_id: 3,
+    is_admin: 1
   }
 ]
 
