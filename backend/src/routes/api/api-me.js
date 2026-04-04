@@ -1,6 +1,6 @@
 import express from "express";
-import {requiresAuthentication} from "../../middleware/auth-middleware";
-import {updateMyProfile} from "../../data/user-dao.js";
+import {requiresAuthentication} from "../../middleware/auth-middleware.js";
+import {deleteUserById, updateMyProfile} from "../../data/user-dao.js";
 
 const router = express.Router();
 
@@ -23,6 +23,20 @@ router.patch("/", requiresAuthentication, async(req,res)=>{
         res.status(400).json({error: "Update failed"});
     }
 });
+
+//Delete self
+router.delete("/", requiresAuthentication, async(req, res)=>{
+    try{
+        const success = await deleteUserById(req.user.id);
+        if(success){
+            res.clearCookie("authToken");
+            return res.sendStatus(204);
+        }
+        return res.sendStatus(404);
+    }catch(err){
+        res.status(500).json({error: "Failed to withdraw."});
+    }
+})
 
 //Search my list user uploaded in marketplace
 
