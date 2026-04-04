@@ -8,7 +8,11 @@ router.use("/", authRoutes);
 
 //User
 import userRoutes from "./api-user.js";
-router.use("/user", userRoutes);
+router.use("/users", userRoutes);
+
+//My Profile
+import myProfileRoutes from "./api-me.js";
+router.use("/me", myProfileRoutes);
 
 // //Course
 // import courseRoutes from "./api-course.js";
