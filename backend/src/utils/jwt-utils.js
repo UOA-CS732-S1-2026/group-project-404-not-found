@@ -7,6 +7,6 @@ export function getUsernameFromJWT(token){
     return decoded.username;
 }
 
-export function createUserJWT(username, expiresIN = "24h"){
+export function createUserJWT(username, expiresIn = "24h"){
     return jwt.sign({username}, process.env.JWT_KEY, {expiresIn});
 }
