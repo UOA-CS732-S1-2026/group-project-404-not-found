@@ -35,7 +35,29 @@ export let users = [
     description: "Good to see you",
     dob: "1994-03-16",
     avatar_id: 3,
+    is_admin: 0
+  },
+    {
+    id: 4,
+    username: "sky",
+    firstname: "sky",
+    lastname: "Hong",
+    password: bcrypt.hashSync("sky123", 10),
+    description: "Have fun",
+    dob: "1990-02-16",
+    avatar_id: 4,
     is_admin: 1
+  },
+  {
+    id: 5,
+    username: "cloudy",
+    firstname: "cloudy",
+    lastname: "Hong",
+    password: bcrypt.hashSync("cloudy123", 10),
+    description: "Have fun!!!",
+    dob: "1970-02-16",
+    avatar_id: 5,
+    is_admin: 0
   }
 ]
 
