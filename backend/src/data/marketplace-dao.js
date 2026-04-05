@@ -9,6 +9,15 @@ export let marketplaceItems = [
         price : 500,
         category: "Electronics",
         createdAt: "2026-04-01"
+    },
+     {
+        id: 2,
+        sellerId : 2,
+        title: "Dining table",
+        description: "Old one",
+        price : 200,
+        category: "Furniture",
+        createdAt: "2026-02-28"
     }
 ];
 
@@ -33,4 +42,23 @@ export async function createItem(data){
     };
     marketplaceItems.push(newItem);
     return newItem;
+}
+
+//Update item(user)
+export async function updateItemById(id, data){
+    const item = marketplaceItems.find(item => item.id === id);
+    if(!item) return null;
+
+    //Override
+    Object.assign(item,data);
+    return item;
+}
+
+//Delete item(user)
+export async function deleteItemById(id){
+    const index = marketplaceItems.findIndex(item => item.id === id);
+    if(index === -1) return false;
+
+    marketplaceItems.splice(index,1);
+    return true;
 }
