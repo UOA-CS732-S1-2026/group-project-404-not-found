@@ -4,7 +4,7 @@ import { createUserJWT } from "../../utils/jwt-utils.js";
 
 const router = express.Router();
 
-//Sign up
+//Register
 router.post("/register", async (req, res)=>{
     try{
         const newUser = await createUser(req.body);
