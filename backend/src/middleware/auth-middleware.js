@@ -1,0 +1,20 @@
+import {findUserByUsername} from "../data/user-dao.js";
+import {getUsernameFromJWT} from "../utils/jwt-utils.js";
+
+export async function requiresAuthentication(req, res, next){
+    const token = req.cookies?.authToken;
+    if(!token) return res.sendStatus(401);
+
+    try{
+        const username = getUsernameFromJWT(token);
+        const user = await findUserByUsername(username);
+        if(!user) return res.sendStatus(401);
+
+        req.user = user;
+        //move admin-middleware
+        next();
+    }catch(err){
+        console.error("Authentication Failed: ", error.message || err);
+        return res.sendStatus(401);
+    }
+}
