@@ -28,6 +28,17 @@ export async function createCourse(data){
     return newCourse;
 }
 
+//Patch the course information by admin
+export async function updateCourse(id, updatedData) {
+    const index = courses.findIndex(c => c.id === id);
+    if (index === -1) return null;
+
+    const updatedCourse = { ...courses[index], ...updatedData, id };
+    courses[index] = updatedCourse;
+    
+    return updatedCourse;
+}
+
 //Delete the course information by admin
 export async function deleteCourseById(id){
     const index = courses.findIndex(c => c.id === id);

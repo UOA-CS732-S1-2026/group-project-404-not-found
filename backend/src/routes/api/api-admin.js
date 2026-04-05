@@ -6,7 +6,7 @@ import {isAdmin} from "../../middleware/admin-middleware.js";
 import {deleteUserById, users} from "../../data/user-dao.js";
 import {deleteMaterialById} from "../../data/material-dao.js";
 import {deleteItemById} from "../../data/marketplace-dao.js"
-import {createCourse, deleteCourseById} from "../../data/course-dao.js";
+import {createCourse, deleteCourseById, updateCourse} from "../../data/course-dao.js";
 
 
 const router = express.Router();
@@ -77,6 +77,25 @@ router.post("/course", async(req, res)=>{
         res.status(400).json({ error: "Failed to create course" });
     }
 });
+
+//Patch course info
+router.patch("/course/:id", async(req,res)=>{
+    const id = parseInt(req.params.id);
+    try{
+
+        const updatedCourse = await updateCourse(id, req.body);
+
+        if(updatedCourse){
+            res.json(updatedCourse);
+        }else{
+            res.status(404).json({error: "Course not found"});
+        }
+
+    }catch(err){
+        console.error(err);
+        res.status(500).json({ error: "Failed to update course" });
+    }
+})
 
 //Delete course info
 router.delete("/course/:id", async(req,res)=>{
