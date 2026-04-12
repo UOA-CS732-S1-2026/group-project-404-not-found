@@ -8,8 +8,9 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import routes from "./routes/routes.js";
 
-//Set's our port to the PORT environment variable, or 3000 by default if the env is not configured.
-const PORT = process.env.PORT ?? 3000;
+// Set the backend port separately from the frontend dev server to avoid conflicts.
+const PORT = process.env.PORT ?? 3001;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
 
 //Creates the express server
 const app = express();
@@ -26,7 +27,7 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(
     cors({
-        origin: [`http://localhost:${PORT}`, process.env.FRONTEND_ORIGIN],
+        origin: [FRONTEND_ORIGIN],
         credentials: true
     })
 );

@@ -55,7 +55,7 @@ router.patch("/marketplace/:id", async(req, res)=>{
     const itemId = parseInt(req.params.id);
     const item = await getItemById(itemId);
 
-    if(!item) return res.statusCode(404).json({error : "Item not found"});
+    if(!item) return res.status(404).json({error : "Item not found"});
 
     //Check user(sellerId)
     if(item.sellerId !== req.user.id){
@@ -84,7 +84,7 @@ router.delete("/marketplace/:id", async(req,res)=>{
 
     const success = await deleteItemById(itemId);
     if(success) res.sendStatus(204);
-    else res.status(500).json({error: "Delete failed"});''
+    else res.status(500).json({error: "Delete failed"});
 })
 
 //Search my list user uploaded in material

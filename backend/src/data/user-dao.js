@@ -7,6 +7,7 @@ export let users = [
    {
     id: 1,
     username: "alice",
+    email: "alice@aucklanduni.ac.nz",
     firstname: "Alice",
     lastname: "Kim",
     password: bcrypt.hashSync("alice123", 10), 
@@ -18,6 +19,7 @@ export let users = [
   {
     id: 2,
     username: "bob",
+    email: "bob@aucklanduni.ac.nz",
     firstname: "Bob",
     lastname: "Lee",
     password: bcrypt.hashSync("bob123", 10),
@@ -29,6 +31,7 @@ export let users = [
    {
     id: 3,
     username: "james",
+    email: "james@aucklanduni.ac.nz",
     firstname: "James",
     lastname: "Jang",
     password: bcrypt.hashSync("james123", 10),
@@ -40,6 +43,7 @@ export let users = [
     {
     id: 4,
     username: "sky",
+    email: "sky@aucklanduni.ac.nz",
     firstname: "sky",
     lastname: "Hong",
     password: bcrypt.hashSync("sky123", 10),
@@ -51,6 +55,7 @@ export let users = [
   {
     id: 5,
     username: "cloudy",
+    email: "cloudy@aucklanduni.ac.nz",
     firstname: "cloudy",
     lastname: "Hong",
     password: bcrypt.hashSync("cloudy123", 10),
@@ -63,9 +68,20 @@ export let users = [
 
 //Register
 export async function createUser(data){
+    const email = data.email?.trim().toLowerCase();
+    if(!email) throw new Error("Email is required");
+    if(await findUserByEmail(email)) throw new Error("Email already exists");
+
+    const username = data.username?.trim() || email.split("@")[0];
     const newUser = {
         id: users.length +1,
-        ...data,
+        username,
+        email,
+        firstname: data.firstname ?? username,
+        lastname: data.lastname ?? "",
+        description: data.description ?? "",
+        dob: data.dob ?? null,
+        avatar_id: data.avatar_id ?? 1,
         password : bcrypt.hashSync(data.password, 10),
         is_admin: 0 
     };
@@ -76,6 +92,11 @@ export async function createUser(data){
 //Login : Check Username
 export async function findUserByUsername(username){
     return users.find(u=> u.username === username) || null;
+}
+
+export async function findUserByEmail(email){
+    const normalizedEmail = email?.trim().toLowerCase();
+    return users.find(u => u.email?.toLowerCase() === normalizedEmail) || null;
 }
 
 //Login : Verify password
@@ -99,4 +120,3 @@ export async function deleteUserById(id){
     users.splice(index, 1);
     return true;
 }
-
