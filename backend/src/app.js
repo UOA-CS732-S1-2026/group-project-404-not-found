@@ -42,5 +42,5 @@ app.use("/", routes);
 
 //Start the server running
 app.listen(PORT, ()=>{
-    console.log(`404 NOT FOUND Project server listening on prot ${PORT}`);
+    console.log(`404 NOT FOUND Project server listening on port ${PORT}`);
 });

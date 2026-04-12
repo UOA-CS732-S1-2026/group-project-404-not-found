@@ -1,4 +1,6 @@
 
+let nextMaterialId = 4; // Track next available ID
+
 export let materials = [
  {
         id: 1,
@@ -23,8 +25,8 @@ export let materials = [
      {
         id: 3,
         uploaderId: 5,
-        title: "CS2200000 Algorithm Notes",
-        courseCode: "COMPSCI220000",
+        title: "CS220 Algorithm Notes",
+        courseCode: "COMPSCI220",
         year: 2023,
         description: "Full semester notes",
         fileType: "pdf",
@@ -68,7 +70,7 @@ export async function getMaterialById(id){
 //Post materials
 export async function createMaterial(data){
     const newMaterial ={
-        id: materials.length +1,
+        id: nextMaterialId++,
         ...data,
         createdAt: new Date().toISOString().split('T')[0]
     };

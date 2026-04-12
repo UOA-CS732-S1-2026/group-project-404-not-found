@@ -1,5 +1,7 @@
 //Hard coding
 
+let nextItemId = 3; // Track next available ID
+
 export let marketplaceItems = [
     {
         id: 1,
@@ -36,7 +38,7 @@ export async function getItemBysellerId(sellerId){
 
 export async function createItem(data){
     const newItem = {
-        id: marketplaceItems.length +1,
+        id: nextItemId++,
         ...data,
         createdAt: new Date().toISOString().split('T')[0]
     };

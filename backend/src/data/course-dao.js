@@ -1,4 +1,6 @@
 
+let nextCourseId = 4; // Track next available ID
+
 export let courses = [
     { id: 1, courseCode: "COMPSCI732", courseName: "Software Tools and Processes" },
     { id: 2, courseCode: "COMPSCI220", courseName: "Algorithms and Data Structures" },
@@ -23,7 +25,7 @@ export async function getCourseBySearch(query){
 
 //Add the course information by admin
 export async function createCourse(data){
-    const newCourse = {id: courses.length +1, ... data};
+    const newCourse = {id: nextCourseId++, ...data};
     courses.push(newCourse);
     return newCourse;
 }

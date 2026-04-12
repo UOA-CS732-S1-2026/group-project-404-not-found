@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, ChevronDown, User, Star, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 type Listing = {
   id: number;

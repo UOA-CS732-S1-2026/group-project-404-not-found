@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Edit2, ShoppingBag, FileText, Download, Trash2, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 type UserProfile = {
   id: number;
@@ -36,7 +36,6 @@ type UserListing = {
   price: number;
   category?: string;
   createdAt?: string;
-  createAt?: string;
 };
 
 function formatDisplayDate(value?: string) {
@@ -339,7 +338,7 @@ export default function ProfilePage() {
                           </Badge>
                           {item.category ? <span className="text-xs text-gray-400">{item.category}</span> : null}
                           <span className="text-xs text-gray-400">
-                            Listed {formatDisplayDate(item.createdAt || item.createAt)}
+                            Listed {formatDisplayDate(item.createdAt)}
                           </span>
                         </div>
                         {item.description ? (

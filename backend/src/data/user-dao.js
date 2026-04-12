@@ -3,6 +3,8 @@
 import bcrypt from "bcrypt";
 
 //Hard-coding
+let nextUserId = 6; // Track next available ID
+
 export let users = [
    {
     id: 1,
@@ -74,7 +76,7 @@ export async function createUser(data){
 
     const username = data.username?.trim() || email.split("@")[0];
     const newUser = {
-        id: users.length +1,
+        id: nextUserId++,
         username,
         email,
         firstname: data.firstname ?? username,
@@ -108,7 +110,18 @@ export async function verifyUserPassword(user, password){
 export async function updateMyProfile(id, data){
     const user = users.find(u=> u.id === id);
     if(!user) return null;
-    Object.assign(user, data);
+    
+    // Only allow updating safe fields - prevent password/admin privilege changes
+    const allowedFields = ['username', 'firstname', 'lastname', 'description', 'dob', 'avatar_id'];
+    const updates = {};
+    
+    for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+            updates[field] = data[field];
+        }
+    }
+    
+    Object.assign(user, updates);
     return user;
 }
 

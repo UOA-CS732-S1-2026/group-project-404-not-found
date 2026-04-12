@@ -21,15 +21,27 @@ router.get("/", async(req , res)=>{
 //Upload new material
 router.post("/", requiresAuthentication, async (req, res)=>{
     try{
+        const { title, courseCode, year } = req.body;
+        
+        // Input validation
+        if (!title?.trim()) {
+            return res.status(400).json({ error: "Title is required" });
+        }
+        if (!courseCode?.trim()) {
+            return res.status(400).json({ error: "Course code is required" });
+        }
+        if (year && (year < 1900 || year > 2100)) {
+            return res.status(400).json({ error: "Invalid year" });
+        }
+        
         const newMaterial = await createMaterial({
-        ...req.body,
-        uploaderId: req.user.id     
+            ...req.body,
+            uploaderId: req.user.id     
         });
         res.status(201).json(newMaterial);
-}catch(err){
-    res.status(400).json({error : "Failed to upload material"});
-}
-
+    }catch(err){
+        res.status(400).json({error : err.message || "Failed to upload material"});
+    }
 });
 
 export default router;

@@ -71,10 +71,20 @@ router.delete("/marketplace/:id",async(req,res)=>{
 //Add course info
 router.post("/course", async(req, res)=>{
     try{
+        const { courseCode, courseName } = req.body;
+        
+        // Input validation
+        if (!courseCode?.trim()) {
+            return res.status(400).json({ error: "Course code is required" });
+        }
+        if (!courseName?.trim()) {
+            return res.status(400).json({ error: "Course name is required" });
+        }
+        
         const newCourse = await createCourse(req.body);
         res.status(201).json(newCourse);
     }catch(err){
-        res.status(400).json({ error: "Failed to create course" });
+        res.status(400).json({ error: err.message || "Failed to create course" });
     }
 });
 
