@@ -5,14 +5,23 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, X, Plus, CheckCircle2, AlertCircle, Image as ImageIcon } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Camera, X, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+const API_BASE_URL = 'http://localhost:3001';
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const [images, setImages] = useState<string[]>([]);
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('');
+  const [price, setPrice] = useState('');
+  const [condition, setCondition] = useState('');
+  const [courseCode, setCourseCode] = useState('');
+  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleAddImage = () => {
     if (images.length < 5) {
@@ -25,14 +34,48 @@ export default function CreateListingPage() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!title.trim() || !category || !price || !condition) return;
+
     setIsSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setErrorMessage('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/marketplace`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          price: Number(price),
+          category,
+          condition,
+          courseCode: courseCode.trim(),
+          images,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+      if (response.status === 401) {
+        navigate('/auth');
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(data?.error ?? 'Unable to publish your listing.');
+        return;
+      }
+
       setSubmitSuccess(true);
-      setTimeout(() => navigate('/marketplace'), 2000);
-    }, 2000);
+      setTimeout(() => navigate('/profile'), 1200);
+    } catch {
+      setErrorMessage('Unable to connect to the server.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -43,7 +86,12 @@ export default function CreateListingPage() {
       </div>
 
       <div className="space-y-8">
-        {/* Image Upload Area */}
+        {errorMessage ? (
+          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {errorMessage}
+          </div>
+        ) : null}
+
         <Card className="border-gray-100 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Photos</CardTitle>
@@ -53,7 +101,8 @@ export default function CreateListingPage() {
               {images.map((img, i) => (
                 <div key={i} className="relative aspect-square rounded-lg overflow-hidden border">
                   <img src={img} alt={`Upload ${i}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  <button 
+                  <button
+                    type="button"
                     onClick={() => removeImage(i)}
                     className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black transition-colors"
                   >
@@ -62,7 +111,8 @@ export default function CreateListingPage() {
                 </div>
               ))}
               {images.length < 5 && (
-                <button 
+                <button
+                  type="button"
                   onClick={handleAddImage}
                   className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-black hover:text-black transition-all bg-gray-50/50"
                 >
@@ -75,7 +125,6 @@ export default function CreateListingPage() {
           </CardContent>
         </Card>
 
-        {/* Details Form */}
         <Card className="border-gray-100 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Item Details</CardTitle>
@@ -83,22 +132,22 @@ export default function CreateListingPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title">Listing Title</Label>
-              <Input id="title" placeholder="e.g., Calculus: Early Transcendentals - 3rd Edition" className="h-11 border-gray-200" />
+              <Input id="title" placeholder="e.g., Calculus: Early Transcendentals - 3rd Edition" className="h-11 border-gray-200" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select>
+                <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="h-11 border-gray-200">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="textbooks">Textbooks</SelectItem>
-                    <SelectItem value="electronics">Electronics</SelectItem>
-                    <SelectItem value="stationery">Stationery</SelectItem>
-                    <SelectItem value="notes">Physical Notes</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="Textbooks">Textbooks</SelectItem>
+                    <SelectItem value="Electronics">Electronics</SelectItem>
+                    <SelectItem value="Stationery">Stationery</SelectItem>
+                    <SelectItem value="Physical Notes">Physical Notes</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -106,7 +155,7 @@ export default function CreateListingPage() {
                 <Label htmlFor="price">Price</Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">$</span>
-                  <Input id="price" type="number" placeholder="0.00" className="h-11 border-gray-200 pl-8" />
+                  <Input id="price" type="number" placeholder="0.00" className="h-11 border-gray-200 pl-8" value={price} onChange={(e) => setPrice(e.target.value)} />
                 </div>
               </div>
             </div>
@@ -114,39 +163,40 @@ export default function CreateListingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="condition">Condition</Label>
-                <Select>
+                <Select value={condition} onValueChange={setCondition}>
                   <SelectTrigger className="h-11 border-gray-200">
                     <SelectValue placeholder="Select condition" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="new">New / Like New</SelectItem>
-                    <SelectItem value="good">Good - used</SelectItem>
-                    <SelectItem value="fair">Fair - heavily used</SelectItem>
+                    <SelectItem value="New / Like New">New / Like New</SelectItem>
+                    <SelectItem value="Good - used">Good - used</SelectItem>
+                    <SelectItem value="Fair - heavily used">Fair - heavily used</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="course">Related Course (Optional)</Label>
-                <Input id="course" placeholder="e.g., MATHS 108" className="h-11 border-gray-200" />
+                <Input id="course" placeholder="e.g., MATHS 108" className="h-11 border-gray-200" value={courseCode} onChange={(e) => setCourseCode(e.target.value)} />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea 
-                id="description" 
-                placeholder="Describe the item's condition, any highlighting, or specific pickup details..." 
+              <Textarea
+                id="description"
+                placeholder="Describe the item's condition, any highlighting, or specific pickup details..."
                 className="min-h-[150px] border-gray-200 resize-none"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
         <div className="flex gap-4 pt-4">
-          <Button 
-            onClick={handleSubmit} 
-            disabled={images.length === 0 || isSubmitting || submitSuccess}
+          <Button
+            onClick={() => void handleSubmit()}
+            disabled={!title.trim() || !category || !price || !condition || isSubmitting || submitSuccess}
             className="flex-grow h-12 bg-black text-white hover:bg-gray-800 font-bold text-base relative overflow-hidden"
           >
             {isSubmitting ? (

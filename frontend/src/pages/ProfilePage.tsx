@@ -65,6 +65,8 @@ export default function ProfilePage() {
   const [listings, setListings] = useState<UserListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [deletingMaterialId, setDeletingMaterialId] = useState<number | null>(null);
+  const [deletingListingId, setDeletingListingId] = useState<number | null>(null);
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -107,6 +109,68 @@ export default function ProfilePage() {
 
     void loadProfileData();
   }, []);
+
+  const handleDeleteMaterial = async (materialId: number) => {
+    if (!window.confirm('Delete this material from your profile?')) return;
+
+    setDeletingMaterialId(materialId);
+    setErrorMessage('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/me/material/${materialId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        setUser(null);
+        setUploads([]);
+        setListings([]);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to delete the material.');
+      }
+
+      setUploads((currentUploads) => currentUploads.filter((item) => item.id !== materialId));
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete the material.');
+    } finally {
+      setDeletingMaterialId(null);
+    }
+  };
+
+  const handleDeleteListing = async (listingId: number) => {
+    if (!window.confirm('Delete this listing from your profile?')) return;
+
+    setDeletingListingId(listingId);
+    setErrorMessage('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/me/marketplace/${listingId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        setUser(null);
+        setUploads([]);
+        setListings([]);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to delete the listing.');
+      }
+
+      setListings((currentListings) => currentListings.filter((item) => item.id !== listingId));
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete the listing.');
+    } finally {
+      setDeletingListingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -238,7 +302,13 @@ export default function ProfilePage() {
                       <Button variant="ghost" size="icon" className="text-gray-400 hover:text-black" disabled>
                         <Download size={20} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-red-500" disabled>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-red-500"
+                        onClick={() => void handleDeleteMaterial(item.id)}
+                        disabled={deletingMaterialId === item.id}
+                      >
                         <Trash2 size={20} />
                       </Button>
                     </div>
@@ -286,7 +356,13 @@ export default function ProfilePage() {
                       <Button variant="ghost" size="icon" className="text-gray-400 hover:text-black" disabled>
                         <Edit2 size={20} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-red-500" disabled>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-red-500"
+                        onClick={() => void handleDeleteListing(item.id)}
+                        disabled={deletingListingId === item.id}
+                      >
                         <Trash2 size={20} />
                       </Button>
                     </div>

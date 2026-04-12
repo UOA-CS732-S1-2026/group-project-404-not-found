@@ -175,7 +175,18 @@ export default function App() {
       }
     };
 
+    const handleProfileUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<CurrentUser>;
+      setCurrentUser(customEvent.detail);
+    };
+
     void loadCurrentUser();
+
+    window.addEventListener('profile-updated', handleProfileUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('profile-updated', handleProfileUpdated as EventListener);
+    };
   }, []);
 
   const handleAuthSuccess = (user: CurrentUser) => {
