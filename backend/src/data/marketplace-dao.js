@@ -51,8 +51,16 @@ export async function updateItemById(id, data){
     const item = marketplaceItems.find(item => item.id === id);
     if(!item) return null;
 
+    const allowedFields = ['title', 'description', 'price', 'category', 'status'];
+    const updates = {};
+    for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+            updates[field] = data[field];
+        }
+    }
+
     //Override
-    Object.assign(item,data);
+    Object.assign(item, updates);
     return item;
 }
 
@@ -63,4 +71,13 @@ export async function deleteItemById(id){
 
     marketplaceItems.splice(index,1);
     return true;
+}
+
+//Delete all items created by a specific user
+export async function deleteItemsBySellerId(sellerId){
+    for (let i = marketplaceItems.length - 1; i >= 0; i--) {
+        if (marketplaceItems[i].sellerId === sellerId) {
+            marketplaceItems.splice(i, 1);
+        }
+    }
 }

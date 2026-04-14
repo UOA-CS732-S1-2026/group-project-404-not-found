@@ -75,6 +75,8 @@ export async function createUser(data){
     if(await findUserByEmail(email)) throw new Error("Email already exists");
 
     const username = data.username?.trim() || email.split("@")[0];
+    if(await findUserByUsername(username)) throw new Error("Username already exists");
+
     const newUser = {
         id: nextUserId++,
         username,

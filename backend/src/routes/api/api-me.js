@@ -1,21 +1,21 @@
 import express from "express";
 import {requiresAuthentication} from "../../middleware/auth-middleware.js";
 import {deleteUserById, updateMyProfile} from "../../data/user-dao.js";
-import {getMaterialById, deleteMaterialById,updateMaterialById,getMaterialByUploaderId} from "../../data/material-dao.js";
-import {getItemBysellerId ,updateItemById, deleteItemById, getItemById} from "../../data/marketplace-dao.js";
+import {getMaterialById, deleteMaterialById,updateMaterialById,getMaterialByUploaderId, deleteMaterialsByUploaderId} from "../../data/material-dao.js";
+import {getItemBysellerId, updateItemById, deleteItemById, getItemById, deleteItemsBySellerId} from "../../data/marketplace-dao.js";
 
 const router = express.Router();
 
 router.use(requiresAuthentication);
 
 //User profile
-router.get("/", requiresAuthentication, async(req, res)=>{
+router.get("/", async(req, res)=>{
     const {password, ...profile} = req.user;
     res.json(profile);
 });
 
 //Modify profile
-router.patch("/", requiresAuthentication, async(req,res)=>{
+router.patch("/", async(req,res)=>{
     try{
     const updated = await updateMyProfile(req.user.id, req.body);
     if(!updated) return res.sendStatus(404);
@@ -27,8 +27,10 @@ router.patch("/", requiresAuthentication, async(req,res)=>{
 });
 
 //Delete user self
-router.delete("/", requiresAuthentication, async(req, res)=>{
+router.delete("/", async(req, res)=>{
     try{
+        await deleteMaterialsByUploaderId(req.user.id);
+        await deleteItemsBySellerId(req.user.id);
         const success = await deleteUserById(req.user.id);
         if(success){
             res.clearCookie("authToken");
@@ -99,7 +101,7 @@ router.get("/material", async(req, res)=>{
     }
 })
 //Delete my list user uploaded in material
-router.delete("/material/:id", requiresAuthentication, async(req, res)=>{
+router.delete("/material/:id", async(req, res)=>{
     const materialId = parseInt(req.params.id);
     const material = await getMaterialById(materialId);
 
@@ -115,7 +117,7 @@ router.delete("/material/:id", requiresAuthentication, async(req, res)=>{
 })
 
 //Patch my list user uploaded in material
-router.patch("/material/:id", requiresAuthentication, async(req, res)=>{
+router.patch("/material/:id", async(req, res)=>{
     const materialId = parseInt(req.params.id);
     const material = await getMaterialById(materialId);
 

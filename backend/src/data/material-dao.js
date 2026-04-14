@@ -91,7 +91,15 @@ export async function updateMaterialById(id, data){
     const material = materials.find(m=> m.id === id);
     if(!material) return null;
 
-    Object.assign(material, data);
+    const allowedFields = ['title', 'courseCode', 'year', 'description', 'fileType'];
+    const updates = {};
+    for (const field of allowedFields) {
+        if (data[field] !== undefined) {
+            updates[field] = data[field];
+        }
+    }
+
+    Object.assign(material, updates);
     return material;
 }
 
@@ -100,4 +108,13 @@ export async function getMaterialByUploaderId(uploaderId){
     const myMaterials = materials.filter(m=> m.uploaderId === uploaderId);
 
     return myMaterials;
+}
+
+//Delete all materials uploaded by a specific user
+export async function deleteMaterialsByUploaderId(uploaderId){
+    for (let i = materials.length - 1; i >= 0; i--) {
+        if (materials[i].uploaderId === uploaderId) {
+            materials.splice(i, 1);
+        }
+    }
 }

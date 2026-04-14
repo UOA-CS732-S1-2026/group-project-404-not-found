@@ -34,7 +34,7 @@ router.post("/login", async(req,res)=>{
     if(!valid) return res.status(401).json({error : "Invalid email or password"});
 
     const token = createUserJWT(user.email);
-    res.cookie("authToken", token, {httpOnly: true});
+    res.cookie("authToken", token, {httpOnly: true, maxAge: 24 * 60 * 60 * 1000});
     res.json({
         message : "Logged in",
         user: {
