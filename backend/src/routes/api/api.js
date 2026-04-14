@@ -26,6 +26,10 @@ router.use("/material", materialRoutes);
 import courseRoutes from "./api-course.js";
 router.use("/course", courseRoutes);
 
+//Credit
+import creditRoutes from "./api-credit.js";
+router.use("/credit", creditRoutes);
+
 
 
 export default router;
