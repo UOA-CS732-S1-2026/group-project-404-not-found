@@ -1,39 +1,64 @@
-import { useState } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, X, CheckCircle2 } from 'lucide-react';
+import { Camera, X, CheckCircle2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const MAX_IMAGES = 6;
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
-  const [images, setImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image files selected for upload
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  // Preview URLs for the selected images (object URLs, freed on unmount)
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
   const [condition, setCondition] = useState('');
   const [courseCode, setCourseCode] = useState('');
+  const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [wechat, setWechat] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleAddImage = () => {
-    if (images.length < 5) {
-      const newImage = `https://picsum.photos/seed/${Date.now()}/800/600`;
-      setImages([...images, newImage]);
-    }
+  // ── Image selection ──────────────────────────────────────────────────────────
+  const handleImageFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files: File[] = e.target.files ? Array.from(e.target.files) : [];
+    const remaining = MAX_IMAGES - imageFiles.length;
+    const toAdd = files.slice(0, remaining);
+
+    // Create preview URLs
+    const previews = toAdd.map((f) => URL.createObjectURL(f));
+
+    setImageFiles((prev) => [...prev, ...toAdd]);
+    setImagePreviews((prev) => [...prev, ...previews]);
+
+    // Reset file input so the same file can be selected again if removed
+    e.target.value = '';
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    URL.revokeObjectURL(imagePreviews[index]);
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!title.trim() || !category || !price || !condition) return;
 
@@ -41,33 +66,44 @@ export default function CreateListingPage() {
     setErrorMessage('');
 
     try {
+      // Must use FormData for multipart/form-data (image uploads)
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      formData.append('price', price);
+      formData.append('category', category);
+      formData.append('condition', condition);
+      if (courseCode.trim()) formData.append('courseCode', courseCode.trim());
+      if (location.trim()) formData.append('location', location.trim());
+      if (description.trim()) formData.append('description', description.trim());
+
+      // Append each image file under the 'images' key
+      imageFiles.forEach((file) => formData.append('images', file));
+
+      // contactMethods as a JSON string (backend parses it)
+      const contactMethods: Record<string, string> = {};
+      if (whatsapp.trim()) contactMethods.whatsapp = whatsapp.trim();
+      if (wechat.trim()) contactMethods.wechat = wechat.trim();
+      if (contactEmail.trim()) contactMethods.email = contactEmail.trim();
+      if (contactPhone.trim()) contactMethods.phone = contactPhone.trim();
+      formData.append('contactMethods', JSON.stringify(contactMethods));
+
       const response = await fetch(`${API_BASE_URL}/marketplace`, {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          price: Number(price),
-          category,
-          condition,
-          courseCode: courseCode.trim(),
-          images,
-        }),
+        // No Content-Type header — browser sets multipart boundary automatically
+        body: formData,
       });
 
       const data = await response.json().catch(() => null);
-      if (response.status === 401) {
-        navigate('/auth');
-        return;
-      }
 
+      if (response.status === 401) { navigate('/auth'); return; }
       if (!response.ok) {
         setErrorMessage(data?.error ?? 'Unable to publish your listing.');
         return;
       }
+
+      // Free all object URLs
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
 
       setSubmitSuccess(true);
       setTimeout(() => navigate('/profile'), 1200);
@@ -82,49 +118,66 @@ export default function CreateListingPage() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-12">
         <h1 className="text-4xl font-bold mb-4">Create Listing</h1>
-        <p className="text-gray-500">List your second-hand items for other students to discover. Textbooks, electronics, and stationery are most popular.</p>
+        <p className="text-gray-500">List your second-hand items for other students to discover. High-quality photos help items sell faster.</p>
       </div>
 
       <div className="space-y-8">
-        {errorMessage ? (
+        {errorMessage && (
           <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
             {errorMessage}
           </div>
-        ) : null}
+        )}
 
+        {/* Photos */}
         <Card className="border-gray-100 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Photos</CardTitle>
+            <CardTitle className="text-lg font-bold">Photos ({imageFiles.length}/{MAX_IMAGES})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {images.map((img, i) => (
-                <div key={i} className="relative aspect-square rounded-lg overflow-hidden border">
-                  <img src={img} alt={`Upload ${i}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+              {imagePreviews.map((src, i) => (
+                <div key={i} className="relative aspect-square rounded-lg overflow-hidden border bg-gray-50">
+                  <img src={src} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
-                    className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black transition-colors"
+                    className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black transition-colors"
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 </div>
               ))}
-              {images.length < 5 && (
+
+              {imageFiles.length < MAX_IMAGES && (
                 <button
                   type="button"
-                  onClick={handleAddImage}
+                  onClick={() => fileInputRef.current?.click()}
                   className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-black hover:text-black transition-all bg-gray-50/50"
                 >
-                  <Camera size={24} className="mb-2" />
-                  <span className="text-[10px] font-bold uppercase">Add Photo</span>
+                  <Camera size={22} className="mb-1" />
+                  <Plus size={14} />
+                  <span className="text-[9px] font-bold uppercase mt-1">Add Photo</span>
                 </button>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-4">Add up to 5 photos. High-quality images help items sell faster.</p>
+
+            {/* Hidden file input — accepts jpg/png/gif, allows multiple */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif"
+              multiple
+              className="hidden"
+              onChange={handleImageFilesChange}
+            />
+
+            <p className="text-xs text-gray-400 mt-4">
+              Add up to {MAX_IMAGES} photos (jpg, png, gif). First photo will be shown as the cover.
+            </p>
           </CardContent>
         </Card>
 
+        {/* Item Details */}
         <Card className="border-gray-100 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg font-bold">Item Details</CardTitle>
@@ -152,10 +205,10 @@ export default function CreateListingPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
+                <Label htmlFor="price">Price (NZD)</Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">$</span>
-                  <Input id="price" type="number" placeholder="0.00" className="h-11 border-gray-200 pl-8" value={price} onChange={(e) => setPrice(e.target.value)} />
+                  <Input id="price" type="number" min="0" step="0.01" placeholder="0.00" className="h-11 border-gray-200 pl-8" value={price} onChange={(e) => setPrice(e.target.value)} />
                 </div>
               </div>
             </div>
@@ -171,6 +224,7 @@ export default function CreateListingPage() {
                     <SelectItem value="New / Like New">New / Like New</SelectItem>
                     <SelectItem value="Good - used">Good - used</SelectItem>
                     <SelectItem value="Fair - heavily used">Fair - heavily used</SelectItem>
+                    <SelectItem value="Accept swap">Accept swap</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -178,6 +232,11 @@ export default function CreateListingPage() {
                 <Label htmlFor="course">Related Course (Optional)</Label>
                 <Input id="course" placeholder="e.g., MATHS 108" className="h-11 border-gray-200" value={courseCode} onChange={(e) => setCourseCode(e.target.value)} />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location">Pickup Location (Optional)</Label>
+              <Input id="location" placeholder="e.g., Near Science Building, UoA City Campus" className="h-11 border-gray-200" value={location} onChange={(e) => setLocation(e.target.value)} />
             </div>
 
             <div className="space-y-2">
@@ -193,15 +252,43 @@ export default function CreateListingPage() {
           </CardContent>
         </Card>
 
+        {/* Contact Methods */}
+        <Card className="border-gray-100 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Contact Methods</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-gray-400">Add at least one way for buyers to reach you.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <Input id="whatsapp" placeholder="+64 21 000 0000" className="h-11 border-gray-200" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wechat">WeChat ID</Label>
+                <Input id="wechat" placeholder="Your WeChat ID" className="h-11 border-gray-200" value={wechat} onChange={(e) => setWechat(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-email">Email</Label>
+                <Input id="contact-email" type="email" placeholder="your@email.com" className="h-11 border-gray-200" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-phone">Phone</Label>
+                <Input id="contact-phone" placeholder="+64 9 000 0000" className="h-11 border-gray-200" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex gap-4 pt-4">
           <Button
             onClick={() => void handleSubmit()}
             disabled={!title.trim() || !category || !price || !condition || isSubmitting || submitSuccess}
-            className="flex-grow h-12 bg-black text-white hover:bg-gray-800 font-bold text-base relative overflow-hidden"
+            className="flex-grow h-12 bg-black text-white hover:bg-gray-800 font-bold text-base"
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
-                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Publishing...
               </div>
             ) : submitSuccess ? (

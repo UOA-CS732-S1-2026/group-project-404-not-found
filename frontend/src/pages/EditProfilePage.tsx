@@ -1,14 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Camera, Check } from 'lucide-react';
+import { ArrowLeft, Camera, Check, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = 'http://localhost:3001';
+
+const DEFAULT_AVATARS = [
+  `${API_BASE_URL}/uploads/avatars/default_1.png`,
+  `${API_BASE_URL}/uploads/avatars/default_2.png`,
+  `${API_BASE_URL}/uploads/avatars/default_3.png`,
+  `${API_BASE_URL}/uploads/avatars/default_4.png`,
+  `${API_BASE_URL}/uploads/avatars/default_5.png`,
+];
 
 type EditableProfile = {
   id: number;
@@ -16,114 +24,172 @@ type EditableProfile = {
   email: string;
   firstname?: string;
   lastname?: string;
-  description?: string;
-  avatar_id?: number;
-  whatsapp?: string;
-  wechat?: string;
-  publicEmail?: string;
+  bio?: string;
+  upi?: string;
+  phone?: string;
+  avatarUrl?: string;
+  notifPrefs?: { email: boolean; push: boolean; sms: boolean };
 };
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
-  const [selectedAvatar, setSelectedAvatar] = useState(0);
-  const [fullName, setFullName] = useState('');
-  const [username, setUsername] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [profile, setProfile] = useState<EditableProfile | null>(null);
+
+  // Profile fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [bio, setBio] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [wechat, setWechat] = useState('');
-  const [publicEmail, setPublicEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [upi, setUpi] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [notifPrefs, setNotifPrefs] = useState({ email: true, push: false, sms: false });
+
+  // Password change
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+
+  // UI state
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-
-  const avatars = [
-    'https://picsum.photos/seed/user/200',
-    'https://picsum.photos/seed/avatar2/200',
-    'https://picsum.photos/seed/avatar3/200',
-    'https://picsum.photos/seed/avatar4/200',
-    'https://picsum.photos/seed/avatar5/200',
-  ];
+  const [pwError, setPwError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const loadProfile = async () => {
       setIsLoading(true);
-      setErrorMessage('');
-
       try {
-        const response = await fetch(`${API_BASE_URL}/me`, {
-          credentials: 'include',
-        });
+        const response = await fetch(`${API_BASE_URL}/me`, { credentials: 'include' });
+        if (response.status === 401) { navigate('/auth'); return; }
+        if (!response.ok) throw new Error('Unable to load your profile.');
 
-        if (response.status === 401) {
-          navigate('/auth');
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error('Unable to load your profile.');
-        }
-
-        const profile: EditableProfile = await response.json();
-        setSelectedAvatar(Math.max((profile.avatar_id ?? 1) - 1, 0));
-        setFullName(`${profile.firstname ?? ''} ${profile.lastname ?? ''}`.trim() || profile.username);
-        setUsername(profile.username ?? '');
-        setBio(profile.description ?? '');
-        setWhatsapp(profile.whatsapp ?? '');
-        setWechat(profile.wechat ?? '');
-        setPublicEmail(profile.publicEmail ?? profile.email ?? '');
+        const data: EditableProfile = await response.json();
+        setProfile(data);
+        setFirstName(data.firstname ?? '');
+        setLastName(data.lastname ?? '');
+        setBio(data.bio ?? '');
+        setPhone(data.phone ?? '');
+        setUpi(data.upi ?? '');
+        setAvatarUrl(data.avatarUrl ?? '');
+        setNotifPrefs(data.notifPrefs ?? { email: true, push: false, sms: false });
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Unable to load your profile.');
       } finally {
         setIsLoading(false);
       }
     };
-
     void loadProfile();
   }, [navigate]);
 
-  const handleSave = async () => {
-    const trimmedName = fullName.trim();
-    const [firstname = '', ...restName] = trimmedName.split(/\s+/).filter(Boolean);
-    const lastname = restName.join(' ');
+  // ── Avatar upload ────────────────────────────────────────────────────────────
+  const handleAvatarFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    setIsUploadingAvatar(true);
+    setErrorMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch(`${API_BASE_URL}/me/avatar`, {
+        method: 'PATCH',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMessage(data.error ?? 'Failed to upload avatar');
+        return;
+      }
+      const data = await res.json();
+      setAvatarUrl(data.avatarUrl);
+      setSuccessMessage('Avatar updated!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch {
+      setErrorMessage('Failed to upload avatar.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // ── Profile save ─────────────────────────────────────────────────────────────
+  const handleSave = async () => {
     setIsSaving(true);
     setErrorMessage('');
-
+    setSuccessMessage('');
     try {
       const response = await fetch(`${API_BASE_URL}/me`, {
         method: 'PATCH',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstname: firstname || username,
-          lastname,
-          description: bio.trim(),
-          avatar_id: selectedAvatar + 1,
-          whatsapp: whatsapp.trim(),
-          wechat: wechat.trim(),
-          publicEmail: publicEmail.trim(),
+          firstname: firstName.trim() || undefined,
+          lastname: lastName.trim() || undefined,
+          bio: bio.trim(),
+          phone: phone.trim(),
+          upi: upi.trim(),
+          notifPrefs,
         }),
       });
 
-      if (response.status === 401) {
-        navigate('/auth');
-        return;
-      }
-
+      if (response.status === 401) { navigate('/auth'); return; }
       const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        setErrorMessage(data?.error ?? 'Unable to save your profile.');
-        return;
-      }
+      if (!response.ok) { setErrorMessage(data?.error ?? 'Unable to save your profile.'); return; }
 
       window.dispatchEvent(new CustomEvent('profile-updated', { detail: data }));
-      navigate('/profile');
+      setSuccessMessage('Profile saved successfully!');
+      setTimeout(() => { setSuccessMessage(''); navigate('/profile'); }, 1500);
     } catch {
       setErrorMessage('Unable to save your profile.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // ── Password change ──────────────────────────────────────────────────────────
+  const handleChangePassword = async () => {
+    setPwError('');
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      setPwError('All password fields are required.'); return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPwError('New passwords do not match.'); return;
+    }
+    if (newPassword.length < 6) {
+      setPwError('New password must be at least 6 characters.'); return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/me/password`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      if (res.status === 401) { setPwError('Current password is incorrect.'); return; }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setPwError(d.error ?? 'Failed to change password.'); return;
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setSuccessMessage('Password changed successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch {
+      setPwError('Unable to connect to the server.');
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -137,6 +203,8 @@ export default function EditProfilePage() {
     );
   }
 
+  const initials = `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.trim() || profile?.email?.[0]?.toUpperCase() || 'U';
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8 flex items-center justify-between">
@@ -145,44 +213,53 @@ export default function EditProfilePage() {
           Back to profile
         </Link>
         <h1 className="text-2xl font-bold">Edit Profile</h1>
-        <div className="w-20"></div> {/* Spacer */}
+        <div className="w-20" />
       </div>
 
       <div className="space-y-8">
-        {errorMessage ? (
-          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {errorMessage}
-          </div>
-        ) : null}
+        {errorMessage && (
+          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{errorMessage}</div>
+        )}
+        {successMessage && (
+          <div className="rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">{successMessage}</div>
+        )}
 
-        {/* Avatar Section */}
+        {/* Avatar */}
         <Card className="border-gray-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">Profile Picture</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg font-bold">Profile Picture</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="relative">
                 <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
-                  <AvatarImage src={avatars[selectedAvatar]} />
-                  <AvatarFallback>AM</AvatarFallback>
+                  <AvatarImage src={avatarUrl || undefined} />
+                  <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
-                <button className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-black text-white flex items-center justify-center border-4 border-white hover:bg-gray-800 transition-colors">
-                  <Camera size={18} />
+                <button
+                  type="button"
+                  className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-black text-white flex items-center justify-center border-4 border-white hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                >
+                  {isUploadingAvatar ? (
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Camera size={18} />
+                  )}
                 </button>
+                <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/gif" className="hidden" onChange={handleAvatarFileChange} />
               </div>
               <div className="flex-grow">
-                <p className="text-sm font-bold mb-3">Choose from library</p>
+                <p className="text-sm font-bold mb-3">Choose from default avatars</p>
                 <div className="flex flex-wrap gap-3">
-                  {avatars.map((avatar, i) => (
+                  {DEFAULT_AVATARS.map((src, i) => (
                     <button
                       type="button"
                       key={i}
-                      onClick={() => setSelectedAvatar(i)}
-                      className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all relative ${selectedAvatar === i ? 'border-black scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                      onClick={() => setAvatarUrl(src)}
+                      className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all relative ${avatarUrl === src ? 'border-black scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}
                     >
-                      <img src={avatar} alt={`Avatar ${i}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      {selectedAvatar === i && (
+                      <img src={src} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      {avatarUrl === src && (
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                           <Check size={16} className="text-white" />
                         </div>
@@ -190,34 +267,41 @@ export default function EditProfilePage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-4">Or upload your own image (max 2MB)</p>
+                <p className="text-xs text-gray-400 mt-4">Or click the camera to upload your own image (jpg, png, gif — max 10MB)</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Basic Info Section */}
+        {/* Basic Info */}
         <Card className="border-gray-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">Basic Information</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg font-bold">Basic Information</CardTitle></CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-11 border-gray-200" />
+                <Label htmlFor="firstname">First Name</Label>
+                <Input id="firstname" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="h-11 border-gray-200" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="upi">UPI ID</Label>
-                <Input id="upi" value={username} disabled className="h-11 bg-gray-50 border-gray-200 text-gray-400" />
-                <p className="text-[10px] text-gray-400">Username cannot be changed here</p>
+                <Label htmlFor="lastname">Last Name</Label>
+                <Input id="lastname" value={lastName} onChange={(e) => setLastName(e.target.value)} className="h-11 border-gray-200" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="upi">UPI / Student ID</Label>
+                <Input id="upi" placeholder="e.g. u1234567" value={upi} onChange={(e) => setUpi(e.target.value)} className="h-11 border-gray-200" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" placeholder="+64 21 000 0000" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 border-gray-200" />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="bio">Bio</Label>
-              <Textarea 
-                id="bio" 
-                placeholder="Tell us a bit about yourself, your major, or what you're looking for..." 
+              <Textarea
+                id="bio"
+                placeholder="Tell other students about yourself, your courses, or items you're looking for."
                 className="min-h-[120px] border-gray-200 resize-none"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
@@ -227,33 +311,95 @@ export default function EditProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Contact Info Section */}
+        {/* Notification Preferences */}
         <Card className="border-gray-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">Contact Details (for Marketplace)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp Number</Label>
-                <Input id="whatsapp" placeholder="+64 21 000 0000" className="h-11 border-gray-200" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+          <CardHeader><CardTitle className="text-lg font-bold">Notification Preferences</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            {(['email', 'push', 'sms'] as const).map((key) => (
+              <div key={key} className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 capitalize">{key} notifications</span>
+                <input
+                  type="checkbox"
+                  checked={notifPrefs[key]}
+                  onChange={(e) => setNotifPrefs(prev => ({ ...prev, [key]: e.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="wechat">WeChat ID</Label>
-                <Input id="wechat" placeholder="Your WeChat ID" className="h-11 border-gray-200" value={wechat} onChange={(e) => setWechat(e.target.value)} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Public Email (Optional)</Label>
-              <Input id="email" placeholder="alex.m@example.com" className="h-11 border-gray-200" value={publicEmail} onChange={(e) => setPublicEmail(e.target.value)} />
-              <p className="text-[10px] text-gray-400">This email will be visible to potential buyers on your listings</p>
-            </div>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
+        {/* Change Password */}
+        <Card className="border-gray-100 shadow-sm">
+          <CardHeader><CardTitle className="text-lg font-bold">Change Password</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            {pwError && (
+              <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">{pwError}</div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="current-pw">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="current-pw"
+                  type={showCurrentPw ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="h-11 border-gray-200 pr-10"
+                />
+                <button type="button" onClick={() => setShowCurrentPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black">
+                  {showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-pw">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="new-pw"
+                  type={showNewPw ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  className="h-11 border-gray-200 pr-10"
+                />
+                <button type="button" onClick={() => setShowNewPw(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black">
+                  {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-pw">Confirm New Password</Label>
+              <Input
+                id="confirm-pw"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className="h-11 border-gray-200"
+              />
+              {confirmNewPassword && newPassword !== confirmNewPassword && (
+                <p className="text-xs text-red-500">Passwords do not match</p>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              className="h-11 font-bold"
+              onClick={() => void handleChangePassword()}
+              disabled={isChangingPassword || !currentPassword || !newPassword || !confirmNewPassword}
+            >
+              {isChangingPassword ? 'Updating...' : 'Update Password'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Save / Cancel */}
         <div className="flex gap-4 pt-4">
-          <Button onClick={handleSave} disabled={isSaving} className="flex-grow h-12 bg-black text-white hover:bg-gray-800 font-bold text-base">
+          <Button
+            onClick={() => void handleSave()}
+            disabled={isSaving}
+            className="flex-grow h-12 bg-black text-white hover:bg-gray-800 font-bold text-base"
+          >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
           <Button variant="outline" onClick={() => navigate('/profile')} className="h-12 px-8 font-bold text-base">

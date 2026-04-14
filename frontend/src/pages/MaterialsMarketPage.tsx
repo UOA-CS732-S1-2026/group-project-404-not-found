@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Download, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -13,63 +14,130 @@ type Material = {
   courseCode: string;
   description?: string;
   fileType?: string;
+  fileSize?: string;
   createdAt?: string;
   year?: number;
+  downloadCost?: number;
+  status?: string;
+};
+
+type CreditLog = {
+  id: number;
+  amount: number;
+  reason: string;
+  createdAt: string;
 };
 
 function formatDate(value?: string) {
   if (!value) return 'Recently';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString('en-NZ', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return date.toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default function MaterialsMarketPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [userBalance, setUserBalance] = useState<number | null>(null);
+  const [creditLogs, setCreditLogs] = useState<CreditLog[]>([]);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState('');
 
+  // Load user's credit balance
   useEffect(() => {
-    const loadMaterials = async () => {
-      setIsLoading(true);
-      setErrorMessage('');
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/material`);
-        if (!response.ok) {
-          throw new Error('Failed to load materials.');
+    fetch(`${API_BASE_URL}/me`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setUserBalance(data.creditBalance ?? 0);
         }
+      })
+      .catch(() => {});
 
-        const data = await response.json();
-        setMaterials(data);
-      } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to load materials.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void loadMaterials();
+    // Load recent credit history
+    fetch(`${API_BASE_URL}/credit/history?limit=5`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(data => setCreditLogs(data.items ?? []))
+      .catch(() => {});
   }, []);
 
-  const filteredMaterials = materials.filter((item) => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
+  // Load materials from API
+  const loadMaterials = async (search = '') => {
+    setIsLoading(true);
+    setErrorMessage('');
+    try {
+      const params = new URLSearchParams();
+      if (search.trim()) params.set('search', search.trim());
+      const response = await fetch(`${API_BASE_URL}/material?${params}`);
+      if (!response.ok) throw new Error('Failed to load materials.');
+      const data = await response.json();
+      // Backend returns { items, total, page, limit }
+      setMaterials(data.items ?? data);
+      setTotal(data.total ?? (data.items ?? data).length);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load materials.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return (
-      item.title.toLowerCase().includes(query) ||
-      item.courseCode.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query)
-    );
-  });
+  useEffect(() => { void loadMaterials(); }, []);
 
-  const pointsEstimate = filteredMaterials.length * 100;
+  const handleSearch = () => void loadMaterials(searchQuery);
+
+  const handleDownload = async (material: Material) => {
+    setDownloadingId(material.id);
+    setDownloadError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/material/${material.id}/download`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (response.status === 401) {
+        navigate('/auth');
+        return;
+      }
+
+      if (response.status === 402) {
+        const data = await response.json();
+        setDownloadError(`Insufficient credits. You need ${data.required} pts but have ${data.available} pts.`);
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        setDownloadError(data.error ?? 'Download failed.');
+        return;
+      }
+
+      const { fileUrl } = await response.json();
+
+      // Update local balance
+      const cost = material.downloadCost ?? 500;
+      setUserBalance(prev => prev !== null ? prev - cost : null);
+
+      // Trigger actual file download
+      if (fileUrl) {
+        window.open(fileUrl, '_blank');
+      }
+
+      // Refresh credit logs
+      fetch(`${API_BASE_URL}/credit/history?limit=5`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : { items: [] })
+        .then(data => setCreditLogs(data.items ?? []))
+        .catch(() => {});
+
+    } catch {
+      setDownloadError('Unable to connect to the server.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -82,9 +150,13 @@ export default function MaterialsMarketPage() {
               className="pl-12 h-14 border-gray-200 shadow-sm text-lg"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
-          <Button className="h-14 px-10 bg-black text-white hover:bg-gray-800 text-lg font-medium" disabled>
+          <Button
+            className="h-14 px-10 bg-black text-white hover:bg-gray-800 text-lg font-medium"
+            onClick={handleSearch}
+          >
             Search
           </Button>
         </div>
@@ -96,12 +168,19 @@ export default function MaterialsMarketPage() {
         </div>
       ) : null}
 
+      {downloadError ? (
+        <div className="mb-6 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+          {downloadError}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* Materials List */}
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">Materials</h2>
             <span className="text-sm text-gray-400">
-              {isLoading ? 'Loading...' : `Showing ${filteredMaterials.length} result${filteredMaterials.length === 1 ? '' : 's'}`}
+              {isLoading ? 'Loading...' : `Showing ${total} result${total === 1 ? '' : 's'}`}
             </span>
           </div>
 
@@ -111,18 +190,19 @@ export default function MaterialsMarketPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredMaterials.map((item) => (
+              {materials.map((item) => (
                 <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-lg overflow-hidden border flex-shrink-0 bg-gray-50 flex items-center justify-center text-gray-400 font-bold">
-                        {(item.fileType ?? 'FILE').slice(0, 3).toUpperCase()}
+                      <div className="h-14 w-14 rounded-lg overflow-hidden border flex-shrink-0 bg-gray-50 flex items-center justify-center text-gray-400 font-bold text-xs">
+                        {(item.fileType ?? 'FILE').slice(0, 4).toUpperCase()}
                       </div>
                       <div>
                         <h3 className="font-bold text-base mb-1">{item.title}</h3>
                         <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
                           <Badge variant="outline" className="rounded-md h-6 px-2 font-bold">{item.courseCode}</Badge>
                           {item.year ? <span>{item.year}</span> : null}
+                          {item.fileSize && <span>{item.fileSize}</span>}
                           <span>{formatDate(item.createdAt)}</span>
                         </div>
                         {item.description ? (
@@ -130,17 +210,31 @@ export default function MaterialsMarketPage() {
                         ) : null}
                       </div>
                     </div>
-                    <div className="flex items-center gap-6">
-                      <span className="font-bold text-sm whitespace-nowrap">{100} pts</span>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-black" disabled>
-                        <Download size={24} />
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      {/* Real downloadCost from backend */}
+                      <span className="font-bold text-sm whitespace-nowrap">
+                        {item.downloadCost ?? 500} pts
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-black"
+                        disabled={downloadingId === item.id}
+                        onClick={() => void handleDownload(item)}
+                        title="Download (costs pts)"
+                      >
+                        {downloadingId === item.id ? (
+                          <div className="h-4 w-4 border-2 border-gray-400 border-t-black rounded-full animate-spin" />
+                        ) : (
+                          <Download size={24} />
+                        )}
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
 
-              {filteredMaterials.length === 0 ? (
+              {materials.length === 0 ? (
                 <div className="text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed">
                   <p className="text-gray-400">No materials match your current search.</p>
                 </div>
@@ -149,28 +243,40 @@ export default function MaterialsMarketPage() {
           )}
         </div>
 
+        {/* Right panel — Real credit balance & history */}
         <div className="lg:col-span-1">
           <Card className="border-gray-100 shadow-sm sticky top-24">
             <CardContent className="p-8">
               <h3 className="text-sm font-medium text-gray-500 mb-4">Points Balance</h3>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-4xl font-bold">{pointsEstimate} pts</span>
+                <span className="text-4xl font-bold">
+                  {userBalance !== null ? userBalance.toLocaleString() : '—'} pts
+                </span>
                 <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
                   <Wallet size={24} className="text-gray-600" />
                 </div>
               </div>
-              <p className="text-sm text-gray-400 mb-8">Estimated from currently loaded materials</p>
+              <p className="text-sm text-gray-400 mb-6">
+                {userBalance !== null ? 'Available balance' : 'Log in to see your balance'}
+              </p>
 
-              <div className="space-y-6">
-                <h4 className="text-sm font-bold">How it works</h4>
-                <div className="space-y-4 text-sm text-gray-600">
-                  <p>Upload new study resources to make them available in the materials market.</p>
-                  <p>Your recent uploads will also appear in your profile for quick management.</p>
-                  <p>Points are still using a placeholder economy until the backend points model is added.</p>
+              {creditLogs.length > 0 && (
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-sm font-bold">Recent Transactions</h4>
+                  {creditLogs.map((log) => (
+                    <div key={log.id} className="flex justify-between text-sm">
+                      <span className="text-gray-600 truncate max-w-[140px]">{log.reason}</span>
+                      <span className={log.amount >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>
+                        {log.amount >= 0 ? '+' : ''}{log.amount} pts
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <Button variant="outline" className="w-full h-12 rounded-md font-bold text-gray-500 hover:text-black" disabled>
-                  View full history
-                </Button>
+              )}
+
+              <div className="space-y-3 text-sm text-gray-600">
+                <p>Each download costs the pts listed next to the material.</p>
+                <p>Upload study resources to earn pts when your upload is approved.</p>
               </div>
             </CardContent>
           </Card>

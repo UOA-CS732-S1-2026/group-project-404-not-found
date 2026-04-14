@@ -24,6 +24,9 @@ type CurrentUser = {
   email: string;
   firstname?: string;
   lastname?: string;
+  creditBalance?: number;
+  avatarUrl?: string;
+  upi?: string;
 };
 
 function Navbar({
@@ -65,7 +68,7 @@ function Navbar({
               <>
                 <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full text-sm font-medium">
                   <ShoppingBag size={16} />
-                  <span>1,240 pts</span>
+                  <span>{(currentUser?.creditBalance ?? 0).toLocaleString()} pts</span>
                 </div>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Bell size={20} />
@@ -75,7 +78,7 @@ function Navbar({
                 </Button>
                 <Link to="/profile">
                   <Avatar className="h-9 w-9 border cursor-pointer hover:opacity-80 transition-opacity">
-                    <AvatarImage src="https://picsum.photos/seed/user/200" />
+                    <AvatarImage src={currentUser?.avatarUrl ?? undefined} />
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                 </Link>

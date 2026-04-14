@@ -4,8 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Edit2, ShoppingBag, FileText, Download, Trash2, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Edit2, ShoppingBag, FileText, Download, Trash2, Plus, History } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -15,17 +15,23 @@ type UserProfile = {
   email: string;
   firstname?: string;
   lastname?: string;
-  description?: string;
-  avatar_id?: number;
+  bio?: string;
+  upi?: string;
+  avatarUrl?: string;
+  creditBalance?: number;
+  createdAt?: string;
 };
 
 type UserMaterial = {
   id: number;
   title: string;
   courseCode: string;
-  year: number;
+  year?: number;
   description?: string;
   fileType?: string;
+  fileSize?: string;
+  status?: string;
+  downloadCost?: number;
   createdAt?: string;
 };
 
@@ -35,37 +41,75 @@ type UserListing = {
   description?: string;
   price: number;
   category?: string;
+  condition?: string;
+  images?: string[];
+  status?: string;
   createdAt?: string;
+};
+
+type CreditLog = {
+  id: number;
+  amount: number;
+  reason: string;
+  createdAt: string;
 };
 
 function formatDisplayDate(value?: string) {
   if (!value) return 'Recently';
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString('en-NZ', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return date.toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-NZ', {
-    style: 'currency',
-    currency: 'NZD',
-  }).format(value);
+  return new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD' }).format(value);
+}
+
+function statusBadge(status?: string) {
+  if (status === 'live') return <Badge className="rounded-md bg-green-50 text-green-700 border border-green-200">Live</Badge>;
+  if (status === 'pending') return <Badge className="rounded-md bg-yellow-50 text-yellow-700 border border-yellow-200">Pending</Badge>;
+  if (status === 'rejected') return <Badge className="rounded-md bg-red-50 text-red-600 border border-red-200">Rejected</Badge>;
+  if (status === 'draft') return <Badge variant="secondary" className="rounded-md">Draft</Badge>;
+  return null;
 }
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [uploads, setUploads] = useState<UserMaterial[]>([]);
   const [listings, setListings] = useState<UserListing[]>([]);
+  const [creditLogs, setCreditLogs] = useState<CreditLog[]>([]);
+  const [showCreditHistory, setShowCreditHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [deletingMaterialId, setDeletingMaterialId] = useState<number | null>(null);
   const [deletingListingId, setDeletingListingId] = useState<number | null>(null);
+
+  // Material pagination
+  const [matPage, setMatPage] = useState(1);
+  const [matTotal, setMatTotal] = useState(0);
+  const MAT_LIMIT = 10;
+
+  // Listing pagination
+  const [listPage, setListPage] = useState(1);
+  const [listTotal, setListTotal] = useState(0);
+  const LIST_LIMIT = 10;
+
+  const loadMaterials = async (page: number) => {
+    const res = await fetch(`${API_BASE_URL}/me/material?page=${page}&limit=${MAT_LIMIT}`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to load materials');
+    const data = await res.json();
+    setUploads(data.items);
+    setMatTotal(data.total);
+  };
+
+  const loadListings = async (page: number) => {
+    const res = await fetch(`${API_BASE_URL}/me/marketplace?page=${page}&limit=${LIST_LIMIT}`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Failed to load listings');
+    const data = await res.json();
+    setListings(data.items);
+    setListTotal(data.total);
+  };
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -75,14 +119,12 @@ export default function ProfilePage() {
       try {
         const [profileResponse, materialsResponse, listingsResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/me`, { credentials: 'include' }),
-          fetch(`${API_BASE_URL}/me/material`, { credentials: 'include' }),
-          fetch(`${API_BASE_URL}/me/marketplace`, { credentials: 'include' }),
+          fetch(`${API_BASE_URL}/me/material?page=1&limit=${MAT_LIMIT}`, { credentials: 'include' }),
+          fetch(`${API_BASE_URL}/me/marketplace?page=1&limit=${LIST_LIMIT}`, { credentials: 'include' }),
         ]);
 
         if (profileResponse.status === 401) {
           setUser(null);
-          setUploads([]);
-          setListings([]);
           return;
         }
 
@@ -97,8 +139,11 @@ export default function ProfilePage() {
         ]);
 
         setUser(profileData);
-        setUploads(materialsData);
-        setListings(listingsData);
+        // Backend now returns { items, total, page, limit }
+        setUploads(materialsData.items ?? materialsData);
+        setMatTotal(materialsData.total ?? materialsData.length);
+        setListings(listingsData.items ?? listingsData);
+        setListTotal(listingsData.total ?? listingsData.length);
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Failed to load your profile data.');
       } finally {
@@ -109,30 +154,31 @@ export default function ProfilePage() {
     void loadProfileData();
   }, []);
 
+  const loadCreditHistory = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/credit/history`, { credentials: 'include' });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setCreditLogs(data.items ?? []);
+      setShowCreditHistory(true);
+    } catch {
+      setErrorMessage('Failed to load credit history.');
+    }
+  };
+
   const handleDeleteMaterial = async (materialId: number) => {
     if (!window.confirm('Delete this material from your profile?')) return;
-
     setDeletingMaterialId(materialId);
     setErrorMessage('');
-
     try {
       const response = await fetch(`${API_BASE_URL}/me/material/${materialId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-
-      if (response.status === 401) {
-        setUser(null);
-        setUploads([]);
-        setListings([]);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to delete the material.');
-      }
-
-      setUploads((currentUploads) => currentUploads.filter((item) => item.id !== materialId));
+      if (response.status === 401) { navigate('/auth'); return; }
+      if (!response.ok) throw new Error('Failed to delete the material.');
+      setUploads((prev) => prev.filter((item) => item.id !== materialId));
+      setMatTotal((t) => t - 1);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to delete the material.');
     } finally {
@@ -142,28 +188,17 @@ export default function ProfilePage() {
 
   const handleDeleteListing = async (listingId: number) => {
     if (!window.confirm('Delete this listing from your profile?')) return;
-
     setDeletingListingId(listingId);
     setErrorMessage('');
-
     try {
       const response = await fetch(`${API_BASE_URL}/me/marketplace/${listingId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-
-      if (response.status === 401) {
-        setUser(null);
-        setUploads([]);
-        setListings([]);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to delete the listing.');
-      }
-
-      setListings((currentListings) => currentListings.filter((item) => item.id !== listingId));
+      if (response.status === 401) { navigate('/auth'); return; }
+      if (!response.ok) throw new Error('Failed to delete the listing.');
+      setListings((prev) => prev.filter((item) => item.id !== listingId));
+      setListTotal((t) => t - 1);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to delete the listing.');
     } finally {
@@ -201,7 +236,8 @@ export default function ProfilePage() {
 
   const fullName = `${user.firstname ?? ''} ${user.lastname ?? ''}`.trim() || user.username || user.email;
   const initials = `${user.firstname?.[0] ?? ''}${user.lastname?.[0] ?? ''}`.trim() || user.email[0]?.toUpperCase() || 'U';
-  const pointsEstimate = uploads.length * 100;
+  const matTotalPages = Math.ceil(matTotal / MAT_LIMIT);
+  const listTotalPages = Math.ceil(listTotal / LIST_LIMIT);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -212,20 +248,27 @@ export default function ProfilePage() {
       ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* ── Left sidebar ── */}
         <div className="lg:col-span-1">
           <Card className="border-gray-100 shadow-sm sticky top-24">
             <CardContent className="p-8">
               <div className="flex flex-col items-center text-center mb-8">
                 <Avatar className="h-24 w-24 border-4 border-white shadow-md mb-4">
-                  <AvatarImage src={`https://picsum.photos/seed/avatar-${user.avatar_id ?? 1}/200`} />
+                  {/* Real avatarUrl from backend */}
+                  <AvatarImage src={user.avatarUrl ?? undefined} />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-2xl font-bold mb-1">{fullName}</h2>
-                <p className="text-sm text-gray-400 mb-2">{user.email}</p>
-                <p className="text-sm text-gray-400 mb-4">Username: {user.username}</p>
+                {user.upi && <p className="text-sm text-gray-400 mb-1">UPI: {user.upi}</p>}
+                <p className="text-sm text-gray-400 mb-4">{user.email}</p>
                 <p className="text-sm text-gray-600 leading-relaxed mb-6">
-                  {user.description?.trim() || 'Add a bio to introduce yourself to other students.'}
+                  {user.bio?.trim() || 'Add a bio to introduce yourself to other students.'}
                 </p>
+                {user.createdAt && (
+                  <p className="text-xs text-gray-400 mb-4">
+                    Member since {new Date(user.createdAt).getFullYear()}
+                  </p>
+                )}
                 <Link to="/profile/edit" className="w-full">
                   <Button variant="outline" className="w-full h-10 rounded-md font-bold text-sm">
                     <Edit2 size={16} className="mr-2" />
@@ -242,25 +285,55 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 font-medium">Points Balance</p>
-                      <p className="text-lg font-bold">{pointsEstimate} pts</p>
+                      {/* Real creditBalance from backend */}
+                      <p className="text-lg font-bold">{(user.creditBalance ?? 0).toLocaleString()} pts</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="text-xs font-bold" disabled>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs font-bold"
+                    onClick={() => void loadCreditHistory()}
+                  >
+                    <History size={14} className="mr-1" />
                     History
                   </Button>
                 </div>
+
+                {/* Credit History panel */}
+                {showCreditHistory && (
+                  <div className="space-y-3 mt-2">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase">Recent Transactions</h4>
+                    {creditLogs.length === 0 ? (
+                      <p className="text-xs text-gray-400">No transactions yet.</p>
+                    ) : (
+                      creditLogs.slice(0, 5).map((log) => (
+                        <div key={log.id} className="flex justify-between text-xs">
+                          <span className="text-gray-600 truncate max-w-[150px]">{log.reason}</span>
+                          <span className={log.amount >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>
+                            {log.amount >= 0 ? '+' : ''}{log.amount} pts
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* ── Right content ── */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="uploads" className="w-full">
             <div className="flex justify-between items-center mb-8">
               <TabsList className="bg-transparent border-b rounded-none h-auto p-0 gap-8">
-                <TabsTrigger value="uploads" className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent px-0 pb-4 font-bold text-base">My Uploads</TabsTrigger>
-                <TabsTrigger value="listings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent px-0 pb-4 font-bold text-base">My Listings</TabsTrigger>
-                <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent px-0 pb-4 font-bold text-base">Settings</TabsTrigger>
+                <TabsTrigger value="uploads" className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent px-0 pb-4 font-bold text-base">
+                  Materials ({matTotal})
+                </TabsTrigger>
+                <TabsTrigger value="listings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent px-0 pb-4 font-bold text-base">
+                  Marketplace Items ({listTotal})
+                </TabsTrigger>
               </TabsList>
 
               <div className="flex gap-2">
@@ -279,6 +352,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* Materials Tab */}
             <TabsContent value="uploads" className="mt-0 space-y-4">
               {uploads.map((item) => (
                 <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
@@ -288,19 +362,21 @@ export default function ProfilePage() {
                         <FileText size={24} />
                       </div>
                       <div>
-                        <h3 className="font-bold text-base mb-1">{item.title}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-base">{item.title}</h3>
+                          {statusBadge(item.status)}
+                        </div>
                         <p className="text-xs text-gray-400">
-                          {item.courseCode} • {item.fileType?.toUpperCase() ?? 'FILE'} • Uploaded {formatDisplayDate(item.createdAt)}
+                          {item.courseCode} • {item.fileType?.toUpperCase() ?? 'FILE'}
+                          {item.fileSize && ` • ${item.fileSize}`}
+                          {' '}• Uploaded {formatDisplayDate(item.createdAt)}
                         </p>
-                        {item.description ? (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-                        ) : null}
+                        {item.downloadCost && (
+                          <p className="text-xs text-gray-500 mt-0.5">{item.downloadCost} pts to download</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-black" disabled>
-                        <Download size={20} />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -319,42 +395,47 @@ export default function ProfilePage() {
                   <p className="text-gray-400">You haven't uploaded any materials yet.</p>
                 </div>
               )}
+
+              {/* Pagination */}
+              {matTotalPages > 1 && (
+                <div className="flex justify-center gap-2 pt-4">
+                  <Button variant="outline" size="sm" disabled={matPage === 1} onClick={() => { setMatPage(p => p - 1); void loadMaterials(matPage - 1); }}>Prev</Button>
+                  <span className="text-sm px-3 py-1">{matPage} / {matTotalPages}</span>
+                  <Button variant="outline" size="sm" disabled={matPage === matTotalPages} onClick={() => { setMatPage(p => p + 1); void loadMaterials(matPage + 1); }}>Next</Button>
+                </div>
+              )}
             </TabsContent>
 
+            {/* Marketplace Tab */}
             <TabsContent value="listings" className="mt-0 space-y-4">
               {listings.map((item) => (
                 <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
                   <CardContent className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="h-16 w-20 rounded-lg bg-gray-100 overflow-hidden">
-                        <img src={`https://picsum.photos/seed/listing-${item.id}/100/100`} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        {item.images && item.images.length > 0 ? (
+                          <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">No image</div>
+                        )}
                       </div>
                       <div>
-                        <h3 className="font-bold text-base mb-1">{item.title}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-base">{item.title}</h3>
+                          {statusBadge(item.status)}
+                        </div>
                         <div className="flex items-center gap-3 flex-wrap">
                           <span className="font-bold text-sm">{formatCurrency(item.price)}</span>
-                          <Badge variant="secondary" className="rounded-md bg-green-50 text-green-700 border-green-100">
-                            Active
-                          </Badge>
-                          {item.category ? <span className="text-xs text-gray-400">{item.category}</span> : null}
-                          <span className="text-xs text-gray-400">
-                            Listed {formatDisplayDate(item.createdAt)}
-                          </span>
+                          {item.category && <span className="text-xs text-gray-400">{item.category}</span>}
+                          {item.condition && <span className="text-xs text-gray-400">{item.condition}</span>}
+                          <span className="text-xs text-gray-400">Listed {formatDisplayDate(item.createdAt)}</span>
                         </div>
-                        {item.description ? (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-                        ) : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Link to={`/marketplace/${item.id}`}>
-                        <Button variant="ghost" size="sm" className="text-sm font-medium">
-                          View
-                        </Button>
+                        <Button variant="ghost" size="sm" className="text-sm font-medium">View</Button>
                       </Link>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-black" disabled>
-                        <Edit2 size={20} />
-                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -373,36 +454,15 @@ export default function ProfilePage() {
                   <p className="text-gray-400">You haven't created any listings yet.</p>
                 </div>
               )}
-            </TabsContent>
 
-            <TabsContent value="settings" className="mt-0">
-              <Card className="border-gray-100">
-                <CardContent className="p-8 space-y-8">
-                  <div className="space-y-4">
-                    <h3 className="font-bold">Account Notifications</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Email when material is downloaded</span>
-                        <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-gray-300" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Email when someone messages about a listing</span>
-                        <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-gray-300" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Monthly points summary</span>
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="pt-8 border-t space-y-4">
-                    <h3 className="font-bold text-red-500">Danger Zone</h3>
-                    <Button variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 font-bold" disabled>
-                      Delete Account
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Pagination */}
+              {listTotalPages > 1 && (
+                <div className="flex justify-center gap-2 pt-4">
+                  <Button variant="outline" size="sm" disabled={listPage === 1} onClick={() => { setListPage(p => p - 1); void loadListings(listPage - 1); }}>Prev</Button>
+                  <span className="text-sm px-3 py-1">{listPage} / {listTotalPages}</span>
+                  <Button variant="outline" size="sm" disabled={listPage === listTotalPages} onClick={() => { setListPage(p => p + 1); void loadListings(listPage + 1); }}>Next</Button>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

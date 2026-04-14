@@ -47,7 +47,8 @@ export default function MarketPlacePage() {
         }
 
         const data = await response.json();
-        setListings(data);
+        // Backend returns { items, total, page, limit } — extract the array safely
+        setListings(Array.isArray(data) ? data : (data.items ?? []));
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Failed to load marketplace listings.');
       } finally {
