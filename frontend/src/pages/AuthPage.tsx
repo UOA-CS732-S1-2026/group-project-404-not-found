@@ -42,7 +42,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
     setErrorMessage('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -60,7 +60,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
         return;
       }
 
-      onAuthSuccess(data.data.user);
+      onAuthSuccess(data.user);
       navigate('/');
     } catch {
       setErrorMessage('Unable to connect to the server.');
@@ -80,7 +80,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
 
     try {
       // 1. Register User
-      const registerResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/auth/register`, {
+      const registerResponse = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -95,14 +95,14 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
       });
 
       const registerData = await registerResponse.json().catch(() => null);
-      if (!registerResponse.ok || !registerData?.success) {
+      if (!registerResponse.ok) {
         setErrorMessage(registerData?.error ?? registerData?.message ?? 'Unable to create your account.');
         setIsSubmitting(false);
         return;
       }
 
       // 2. Automatically Log in the newly registered user
-      const loginResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/auth/login`, {
+      const loginResponse = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -115,14 +115,14 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
       });
 
       const loginData = await loginResponse.json().catch(() => null);
-      if (!loginResponse.ok || !loginData?.success) {
+      if (!loginResponse.ok) {
         setErrorMessage(loginData?.error ?? loginData?.message ?? 'Account created, but automatic login failed. Please log in manually.');
         setMode('login');
         setIsSubmitting(false);
         return;
       }
 
-      onAuthSuccess(loginData.data.user);
+      onAuthSuccess(loginData.user);
       navigate('/');
     } catch {
       setErrorMessage('Unable to connect to the server.');
