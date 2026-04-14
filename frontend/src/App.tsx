@@ -16,6 +16,7 @@ import ProfilePage from './pages/ProfilePage';
 import EditProfilePage from './pages/EditProfilePage';
 import UploadMaterialPage from './pages/UploadMaterialPage';
 import CreateListingPage from './pages/CreateListingPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -27,6 +28,7 @@ type CurrentUser = {
   creditBalance?: number;
   avatarUrl?: string;
   upi?: string;
+  is_admin?: number;
 };
 
 function Navbar({
@@ -60,6 +62,12 @@ function Navbar({
               <Link to="/materials" className="hover:text-black transition-colors">Materials</Link>
               <Link to="/courses" className="hover:text-black transition-colors">Courses</Link>
               <Link to="/marketplace" className="hover:text-black transition-colors">Market Place</Link>
+              {currentUser?.is_admin === 1 && (
+                <Link to="/admin" className="flex items-center gap-1 text-purple-600 hover:text-purple-800 transition-colors font-bold">
+                  <Settings size={14} />
+                  Admin
+                </Link>
+              )}
             </div>
           </div>
 
@@ -224,6 +232,7 @@ export default function App() {
             <Route path="/profile/edit" element={<EditProfilePage />} />
             <Route path="/upload" element={<UploadMaterialPage />} />
             <Route path="/create-listing" element={<CreateListingPage />} />
+            <Route path="/admin" element={<AdminDashboardPage />} />
           </Routes>
         </main>
         <Footer />
