@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,13 @@ import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 const MAX_IMAGES = 6;
+
+type Course = {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  department?: string;
+};
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
@@ -24,7 +31,11 @@ export default function CreateListingPage() {
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
   const [condition, setCondition] = useState('');
-  const [courseCode, setCourseCode] = useState('');
+  // Course search — dynamic from backend
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [courseSearch, setCourseSearch] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [showCourseSuggestions, setShowCourseSuggestions] = useState(false);
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -35,6 +46,20 @@ export default function CreateListingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Load all courses from backend for the autocomplete dropdown
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/course`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: Course[]) => setAllCourses(data))
+      .catch(() => {});
+  }, []);
+
+  const filteredCourses = allCourses.filter(c =>
+    courseSearch.trim() === '' ||
+    c.courseCode.toLowerCase().includes(courseSearch.toLowerCase()) ||
+    c.courseName.toLowerCase().includes(courseSearch.toLowerCase())
+  ).slice(0, 6);
 
   // ── Image selection ──────────────────────────────────────────────────────────
   const handleImageFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -72,9 +97,10 @@ export default function CreateListingPage() {
       formData.append('price', price);
       formData.append('category', category);
       formData.append('condition', condition);
-      if (courseCode.trim()) formData.append('courseCode', courseCode.trim());
+      if (selectedCourse) formData.append('courseCode', selectedCourse.courseCode);
       if (location.trim()) formData.append('location', location.trim());
       if (description.trim()) formData.append('description', description.trim());
+      formData.append('status', 'live'); // publish immediately as live
 
       // Append each image file under the 'images' key
       imageFiles.forEach((file) => formData.append('images', file));
@@ -196,10 +222,10 @@ export default function CreateListingPage() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Textbooks">Textbooks</SelectItem>
+                    <SelectItem value="Books">Textbooks / Books</SelectItem>
                     <SelectItem value="Electronics">Electronics</SelectItem>
                     <SelectItem value="Stationery">Stationery</SelectItem>
-                    <SelectItem value="Physical Notes">Physical Notes</SelectItem>
+                    <SelectItem value="Notes">Physical Notes</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -221,16 +247,47 @@ export default function CreateListingPage() {
                     <SelectValue placeholder="Select condition" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="New / Like New">New / Like New</SelectItem>
-                    <SelectItem value="Good - used">Good - used</SelectItem>
-                    <SelectItem value="Fair - heavily used">Fair - heavily used</SelectItem>
-                    <SelectItem value="Accept swap">Accept swap</SelectItem>
+                    <SelectItem value="Like New">New / Like New</SelectItem>
+                    <SelectItem value="Good">Good - used</SelectItem>
+                    <SelectItem value="Fair">Fair - heavily used</SelectItem>
+                    <SelectItem value="Swap">Accept swap</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="course">Related Course (Optional)</Label>
-                <Input id="course" placeholder="e.g., MATHS 108" className="h-11 border-gray-200" value={courseCode} onChange={(e) => setCourseCode(e.target.value)} />
+              <div className="space-y-2 relative">
+                <Label htmlFor="course-search">Related Course (Optional)</Label>
+                <Input
+                  id="course-search"
+                  placeholder="Search by code or title (e.g., COMPSCI732)"
+                  className="h-11 border-gray-200"
+                  value={selectedCourse ? `${selectedCourse.courseCode} - ${selectedCourse.courseName}` : courseSearch}
+                  onChange={(e) => {
+                    setCourseSearch(e.target.value);
+                    setSelectedCourse(null);
+                    setShowCourseSuggestions(true);
+                  }}
+                  onFocus={() => setShowCourseSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowCourseSuggestions(false), 200)}
+                />
+                {showCourseSuggestions && filteredCourses.length > 0 && !selectedCourse && (
+                  <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                    {filteredCourses.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                        onClick={() => {
+                          setSelectedCourse(c);
+                          setCourseSearch('');
+                          setShowCourseSuggestions(false);
+                        }}
+                      >
+                        <p className="font-bold text-sm">{c.courseCode} - {c.courseName}</p>
+                        {c.department && <p className="text-xs text-gray-400">{c.department}</p>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, User, Star, ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, ChevronDown, X } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+// These MUST match the values stored in the backend DAO
+const CATEGORIES = ['Books', 'Electronics', 'Stationery', 'Notes', 'Other'];
+const CONDITIONS = ['Like New', 'Good', 'Fair', 'Swap'];
 
 type Listing = {
   id: number;
@@ -30,49 +34,86 @@ function formatCurrency(value: number) {
 }
 
 export default function MarketPlacePage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [urlParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(urlParams.get('search') ?? '');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCondition, setSelectedCondition] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+
   const [listings, setListings] = useState<Listing[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    const loadListings = async () => {
-      setIsLoading(true);
-      setErrorMessage('');
+  const loadListings = useCallback(async (params?: {
+    search?: string;
+    category?: string;
+    condition?: string;
+    min?: string;
+    max?: string;
+  }) => {
+    setIsLoading(true);
+    setErrorMessage('');
 
-      try {
-        const response = await fetch(`${API_BASE_URL}/marketplace`);
-        if (!response.ok) {
-          throw new Error('Failed to load marketplace listings.');
-        }
+    try {
+      const query = new URLSearchParams();
+      const search = params?.search ?? searchQuery;
+      const cat = params?.category ?? selectedCategory;
+      const cond = params?.condition ?? selectedCondition;
+      const min = params?.min ?? minPrice;
+      const max = params?.max ?? maxPrice;
 
-        const data = await response.json();
-        // Backend returns { items, total, page, limit } — extract the array safely
-        setListings(Array.isArray(data) ? data : (data.items ?? []));
-      } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to load marketplace listings.');
-      } finally {
-        setIsLoading(false);
+      if (search.trim()) query.set('search', search.trim());
+      if (cat) query.set('category', cat);
+      if (cond) query.set('condition', cond);
+      if (min) query.set('minPrice', min);
+      if (max) query.set('maxPrice', max);
+
+      const response = await fetch(`${API_BASE_URL}/marketplace?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to load marketplace listings.');
       }
-    };
 
+      const data = await response.json();
+      // Backend returns { items, total, page, limit }
+      setListings(Array.isArray(data) ? data : (data.items ?? []));
+      setTotal(Array.isArray(data) ? data.length : (data.total ?? 0));
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load marketplace listings.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery, selectedCategory, selectedCondition, minPrice, maxPrice]);
+
+  // Initial load (respects ?search= URL param from course page)
+  useEffect(() => {
     void loadListings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredListings = listings.filter((item) => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
+  // Re-fetch whenever filter chips change
+  useEffect(() => {
+    void loadListings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, selectedCondition]);
 
-    return (
-      item.title.toLowerCase().includes(query) ||
-      item.category?.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query) ||
-      item.courseCode?.toLowerCase().includes(query)
-    );
-  });
+  const handleSearch = () => void loadListings();
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('');
+    setSelectedCondition('');
+    setMinPrice('');
+    setMaxPrice('');
+    void loadListings({ search: '', category: '', condition: '', min: '', max: '' });
+  };
+
+  const hasActiveFilters = searchQuery || selectedCategory || selectedCondition || minPrice || maxPrice;
 
   return (
     <div className="flex flex-col">
+      {/* Hero */}
       <section className="relative h-[400px] flex items-center justify-center overflow-hidden">
         <img
           src="https://picsum.photos/seed/marketplace-hero/1920/1080?blur=2"
@@ -90,7 +131,7 @@ export default function MarketPlacePage() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
         {errorMessage ? (
           <div className="mb-6 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
             {errorMessage}
@@ -98,75 +139,159 @@ export default function MarketPlacePage() {
         ) : null}
 
         <div className="flex flex-col lg:flex-row gap-12">
+          {/* ── Sidebar Filters ── */}
           <aside className="w-full lg:w-64 flex-shrink-0">
             <div className="sticky top-24 space-y-8">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-lg">Filters</h3>
-                <button className="text-xs text-gray-400 hover:text-black" onClick={() => setSearchQuery('')}>
-                  Clear Search
-                </button>
+                {hasActiveFilters && (
+                  <button
+                    className="text-xs text-gray-400 hover:text-black flex items-center gap-1"
+                    onClick={handleClearFilters}
+                  >
+                    <X size={12} /> Clear all
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-4">
-                <h4 className="text-sm font-bold">Current Categories</h4>
-                <div className="space-y-2 text-sm text-gray-600">
-                  {[...new Set(listings.map((item) => item.category).filter(Boolean))].slice(0, 6).map((category) => (
-                    <p key={category}>{category}</p>
-                  ))}
-                  {listings.length === 0 ? <p>No categories yet.</p> : null}
+              {/* Search */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold">Search</h4>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <Input
+                    placeholder="Keyword..."
+                    className="pl-9 h-10 border-gray-200 text-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  />
                 </div>
+                <Button
+                  className="w-full h-9 bg-black text-white hover:bg-gray-800 text-sm font-medium"
+                  onClick={handleSearch}
+                >
+                  Search
+                </Button>
               </div>
 
-              <div className="space-y-4">
-                <h4 className="text-sm font-bold">Related Courses</h4>
+              {/* Category Filter */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold">Category</h4>
                 <div className="space-y-2">
-                  {[...new Set(listings.map((item) => item.courseCode).filter(Boolean))].slice(0, 4).map((course) => (
-                    <Button key={course} variant="outline" className="w-full justify-start h-auto py-2 px-3 text-[10px] text-left">
-                      {course}
-                    </Button>
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(prev => prev === cat ? '' : cat)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === cat ? 'bg-black text-white font-bold' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      {cat === 'Books' ? 'Textbooks / Books' : cat === 'Notes' ? 'Physical Notes' : cat}
+                      {selectedCategory === cat && <X size={12} className="float-right mt-1" />}
+                    </button>
                   ))}
-                  {!listings.some((item) => item.courseCode) ? (
-                    <p className="text-sm text-gray-500">Listings will show course links here once sellers add them.</p>
-                  ) : null}
                 </div>
+              </div>
+
+              {/* Condition Filter */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold">Condition</h4>
+                <div className="space-y-2">
+                  {CONDITIONS.map((cond) => (
+                    <button
+                      key={cond}
+                      onClick={() => setSelectedCondition(prev => prev === cond ? '' : cond)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCondition === cond ? 'bg-black text-white font-bold' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      {cond === 'Like New' ? 'New / Like New' : cond === 'Good' ? 'Good - used' : cond === 'Fair' ? 'Fair - heavily used' : cond}
+                      {selectedCondition === cond && <X size={12} className="float-right mt-1" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price Range Filter */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-bold">Price Range (NZD)</h4>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    min="0"
+                    className="h-9 border-gray-200 text-sm"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                  />
+                  <span className="text-gray-400 text-sm">–</span>
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    min="0"
+                    className="h-9 border-gray-200 text-sm"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full h-9 text-sm font-medium"
+                  onClick={handleSearch}
+                >
+                  Apply Price
+                </Button>
               </div>
             </div>
           </aside>
 
+          {/* ── Listings Grid ── */}
           <main className="flex-grow">
-            <div className="mb-8">
-              <div className="relative mb-8">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <Input
-                  placeholder="Search for textbooks, electronics, stationery..."
-                  className="pl-12 h-12 border-gray-200 shadow-sm rounded-full"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-between items-center">
-                <h2 className="text-sm font-medium text-gray-500">
-                  {isLoading ? 'Loading listings...' : `${filteredListings.length} item${filteredListings.length === 1 ? '' : 's'} found`}
-                </h2>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-gray-400">Newest First</span>
-                  <ChevronDown size={16} className="text-gray-400" />
-                </div>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-sm font-medium text-gray-500">
+                {isLoading ? 'Loading listings...' : `${total} item${total === 1 ? '' : 's'} found`}
+              </h2>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-400">Newest First</span>
+                <ChevronDown size={16} className="text-gray-400" />
               </div>
             </div>
 
+            {/* Active filter chips */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {searchQuery && (
+                  <Badge variant="secondary" className="pr-1 cursor-pointer" onClick={() => { setSearchQuery(''); void loadListings({ search: '' }); }}>
+                    "{searchQuery}" <X size={10} className="ml-1" />
+                  </Badge>
+                )}
+                {selectedCategory && (
+                  <Badge variant="secondary" className="pr-1 cursor-pointer" onClick={() => setSelectedCategory('')}>
+                    {selectedCategory} <X size={10} className="ml-1" />
+                  </Badge>
+                )}
+                {selectedCondition && (
+                  <Badge variant="secondary" className="pr-1 cursor-pointer" onClick={() => setSelectedCondition('')}>
+                    {selectedCondition} <X size={10} className="ml-1" />
+                  </Badge>
+                )}
+                {(minPrice || maxPrice) && (
+                  <Badge variant="secondary" className="pr-1 cursor-pointer" onClick={() => { setMinPrice(''); setMaxPrice(''); void loadListings({ min: '', max: '' }); }}>
+                    ${minPrice || '0'} – ${maxPrice || '∞'} <X size={10} className="ml-1" />
+                  </Badge>
+                )}
+              </div>
+            )}
+
             {isLoading ? (
-              <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-gray-500">
-                Loading marketplace listings...
+              <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center">
+                <div className="h-8 w-8 mx-auto border-4 border-gray-200 border-t-black rounded-full animate-spin mb-3" />
+                <p className="text-gray-500">Loading marketplace listings...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredListings.map((item, index) => (
+                {listings.map((item, index) => (
                   <Link key={item.id} to={`/marketplace/${item.id}`} className="group">
                     <Card className="border-none shadow-none bg-transparent">
                       <CardContent className="p-0">
-                        <div className="aspect-[4/3] rounded-xl overflow-hidden mb-4 relative">
+                        <div className="aspect-[4/3] rounded-xl overflow-hidden mb-4 relative bg-gray-100">
                           <img
                             src={item.images?.[0] || `https://picsum.photos/seed/marketplace-${item.id}/400/300`}
                             alt={item.title}
@@ -176,13 +301,17 @@ export default function MarketPlacePage() {
                           {index === 0 && (
                             <Badge className="absolute top-3 left-3 bg-black text-white border-none rounded-sm text-[10px] uppercase font-bold px-2 py-0.5">Latest</Badge>
                           )}
+                          {item.condition && (
+                            <Badge className="absolute top-3 right-3 bg-white text-gray-700 border border-gray-200 rounded-sm text-[10px] font-bold px-2 py-0.5">
+                              {item.condition}
+                            </Badge>
+                          )}
                         </div>
                         <h3 className="font-bold text-sm mb-1 line-clamp-2 group-hover:underline">{item.title}</h3>
-                        <p className="font-bold text-lg mb-2">{formatCurrency(item.price)}</p>
+                        <p className="font-bold text-lg mb-1">{formatCurrency(item.price)}</p>
                         <div className="flex items-center gap-2 flex-wrap text-[10px] text-gray-500">
-                          <span>Seller #{item.sellerId ?? 'N/A'}</span>
-                          {item.category ? <span>• {item.category}</span> : null}
-                          {item.condition ? <span>• {item.condition}</span> : null}
+                          {item.category ? <span className="bg-gray-100 px-2 py-0.5 rounded-full">{item.category}</span> : null}
+                          {item.courseCode ? <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">{item.courseCode}</span> : null}
                         </div>
                       </CardContent>
                     </Card>
@@ -191,52 +320,18 @@ export default function MarketPlacePage() {
               </div>
             )}
 
-            {!isLoading && filteredListings.length === 0 ? (
+            {!isLoading && listings.length === 0 ? (
               <div className="text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed mt-8">
-                <p className="text-gray-400">No marketplace listings match your current search.</p>
+                <p className="text-gray-400">No marketplace listings match your current filters.</p>
+                {hasActiveFilters && (
+                  <button onClick={handleClearFilters} className="mt-3 text-sm font-bold text-black hover:underline">
+                    Clear all filters
+                  </button>
+                )}
               </div>
             ) : null}
           </main>
         </div>
-
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16 py-24 border-t mt-24">
-          <div className="space-y-4">
-            <div className="h-10 w-10 flex items-center justify-center">
-              <Search size={24} />
-            </div>
-            <h3 className="text-xl font-bold">Real-Time Listings</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              New items published through the create listing form now appear here automatically.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="h-10 w-10 flex items-center justify-center">
-              <User size={24} />
-            </div>
-            <h3 className="text-xl font-bold">Seller Profiles</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              Listings are tied back to authenticated users, so profile management and marketplace management stay in sync.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="h-10 w-10 flex items-center justify-center">
-              <ShoppingBag size={24} />
-            </div>
-            <h3 className="text-xl font-bold">Student Goods</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              Textbooks, stationery, electronics, and notes can all be published through the shared backend.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="h-10 w-10 flex items-center justify-center">
-              <Star size={24} />
-            </div>
-            <h3 className="text-xl font-bold">Next Step</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              Detail pages can be connected next so these cards open into real item records instead of placeholders.
-            </p>
-          </div>
-        </section>
       </div>
     </div>
   );
