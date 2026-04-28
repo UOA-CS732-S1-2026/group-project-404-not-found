@@ -35,10 +35,18 @@ export async function getItemBysellerId(sellerId){
 }
 
 export async function createItem(data){
+    let newId;
+    if (marketplaceItems.length === 0) {
+        newId = 1;
+    } else {
+        const maxId = Math.max(...marketplaceItems.map(item => item.id));
+        newId = maxId + 1;
+    }
+
     const newItem = {
-        id: marketplaceItems.length +1,
+        id: newId,
         ...data,
-        createAt: new Date().toISOString().split('T')[0]
+        createdAt: new Date().toISOString().split('T')[0]
     };
     marketplaceItems.push(newItem);
     return newItem;

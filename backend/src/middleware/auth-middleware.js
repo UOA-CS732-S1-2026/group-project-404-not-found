@@ -14,7 +14,7 @@ export async function requiresAuthentication(req, res, next){
         //move admin-middleware
         next();
     }catch(err){
-        console.error("Authentication Failed: ", error.message || err);
+        console.error("Authentication Failed: ", err.message || err);
         return res.sendStatus(401);
     }
 }
