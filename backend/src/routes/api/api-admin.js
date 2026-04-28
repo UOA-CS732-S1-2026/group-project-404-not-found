@@ -1,5 +1,4 @@
 //Only for admin
-
 import express from "express";
 import {requiresAuthentication} from "../../middleware/auth-middleware.js";
 import {isAdmin} from "../../middleware/admin-middleware.js";
@@ -14,16 +13,32 @@ const router = express.Router();
 router.use(requiresAuthentication);
 router.use(isAdmin);
 
-//Search all user list for admin(GET/users)
-router.get("/users", async(req,res)=>{
-    const safeUsers = users.map(({password, ...u})=>u);
-    res.json(safeUsers);
+// Utility function to validate numeric IDs
+const validateNumericId = (id, res) => {
+  if (isNaN(id) || id <= 0) {
+    res.status(400).json({ error: "Invalid ID (must be a positive number)" });
+    return false;
+  }
+  return true;
+};
 
-})
+//Search all user list for admin(GET/users)
+router.get("/users", async (req, res) => {
+  try {
+    const safeUsers = users.map(({ password, ...u }) => u);
+    res.json(safeUsers);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
 
 //Delete a user by admin
 router.delete("/users/:id",async (req, res)=>{
     const id = parseInt(req.params.id);
+    if (!validateNumericId(id, res)) {
+        return;
+    }
 
     try{
         const success = await deleteUserById(id)
@@ -33,7 +48,7 @@ router.delete("/users/:id",async (req, res)=>{
             return res.status(404).json({error: "User not found."});
         }
     }catch(err){
-        console.error(err);
+        console.error("Delete user error:", err);
         return res.status(500).json({error: "Internal server error during deletion"});
     }
 });
@@ -41,6 +56,9 @@ router.delete("/users/:id",async (req, res)=>{
 //Delete user's material by admin
 router.delete("/materials/:id", async(req, res)=>{
     const materialId = parseInt(req.params.id);
+    if (!validateNumericId(materialId, res)) {
+        return;
+    }
     const success = await deleteMaterialById(materialId);
 
     if(success){
@@ -53,6 +71,9 @@ router.delete("/materials/:id", async(req, res)=>{
 //Delete user's items in the marketplace by admin
 router.delete("/marketplace/:id",async(req,res)=>{
     const itemId = parseInt(req.params.id);
+    if (!validateNumericId(itemId, res)) {
+        return;
+    }
 
     try{
         const success = await deleteItemById(itemId);
@@ -63,7 +84,7 @@ router.delete("/marketplace/:id",async(req,res)=>{
             res.status(404).json({error: "Marketplace item not found"});
         }
     }catch(err){
-        console.error(err);
+        console.error("Delete marketplace item error:", err);
         res.status(500).json({ error: "Internal server error during marketplace deletion" });
     }
 });
@@ -71,9 +92,13 @@ router.delete("/marketplace/:id",async(req,res)=>{
 //Add course info
 router.post("/course", async(req, res)=>{
     try{
+        if (!req.body.name || req.body.name.trim() === "") {
+            return res.status(400).json({ error: "Course name is required" });
+        }
         const newCourse = await createCourse(req.body);
         res.status(201).json(newCourse);
     }catch(err){
+        console.error("Create course error:", err);
         res.status(400).json({ error: "Failed to create course" });
     }
 });
@@ -81,18 +106,19 @@ router.post("/course", async(req, res)=>{
 //Patch course info
 router.patch("/course/:id", async(req,res)=>{
     const id = parseInt(req.params.id);
+    if (!validateNumericId(id, res)) {
+        return;
+    }
+    
     try{
-
         const updatedCourse = await updateCourse(id, req.body);
-
         if(updatedCourse){
             res.json(updatedCourse);
         }else{
             res.status(404).json({error: "Course not found"});
         }
-
     }catch(err){
-        console.error(err);
+        console.error("Update course error:", err);
         res.status(500).json({ error: "Failed to update course" });
     }
 })
@@ -100,6 +126,10 @@ router.patch("/course/:id", async(req,res)=>{
 //Delete course info
 router.delete("/course/:id", async(req,res)=>{
     const id = parseInt(req.params.id);
+    if (!validateNumericId(id, res)) {
+        return;
+    }
+
     try{
         const success = await deleteCourseById(id);
         if(success){
@@ -108,10 +138,10 @@ router.delete("/course/:id", async(req,res)=>{
             res.status(404).json({error: "Course not found"});
         }
     }catch(err){
+        console.error("Delete course error:", err);
         res.status(500).json({ error: "Failed to delete course" });
     }
 });
-
 
 export default router;
 
