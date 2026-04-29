@@ -8,7 +8,7 @@ import { Link, useParams } from 'react-router-dom';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 type Listing = {
-  id: number;
+  _id: string;
   title: string;
   price: number;
   category?: string;
@@ -27,7 +27,7 @@ type Listing = {
 };
 
 type SimilarItem = {
-  id: number;
+  _id: string;
   title: string;
   price: number;
   condition?: string;
@@ -226,7 +226,7 @@ export default function MarketPlaceDetailPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {similarListings.map((item) => (
-              <Link key={item.id} to={`/marketplace/${item.id}`} className="group">
+              <Link key={item._id} to={`/marketplace/${item._id}`} className="group">
                 <Card className="border-gray-100 hover:border-gray-300 transition-all">
                   <CardContent className="p-4">
                     <div className="aspect-square rounded-lg overflow-hidden mb-4 bg-gray-100">

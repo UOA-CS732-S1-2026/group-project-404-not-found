@@ -12,7 +12,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 const MAX_IMAGES = 6;
 
 type Course = {
-  id: number;
+  _id: string;
   courseCode: string;
   courseName: string;
   department?: string;
@@ -273,7 +273,7 @@ export default function CreateListingPage() {
                   <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
                     {filteredCourses.map(c => (
                       <button
-                        key={c.id}
+                        key={c._id}
                         type="button"
                         className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
                         onClick={() => {

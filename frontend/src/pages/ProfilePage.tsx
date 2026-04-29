@@ -10,7 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 type UserProfile = {
-  id: number;
+  _id: string;
   username: string;
   email: string;
   firstname?: string;
@@ -23,7 +23,7 @@ type UserProfile = {
 };
 
 type UserMaterial = {
-  id: number;
+  _id: string;
   title: string;
   courseCode: string;
   year?: number;
@@ -36,7 +36,7 @@ type UserMaterial = {
 };
 
 type UserListing = {
-  id: number;
+  _id: string;
   title: string;
   description?: string;
   price: number;
@@ -48,7 +48,7 @@ type UserListing = {
 };
 
 type CreditLog = {
-  id: number;
+  _id: string;
   amount: number;
   reason: string;
   createdAt: string;
@@ -82,8 +82,8 @@ export default function ProfilePage() {
   const [showCreditHistory, setShowCreditHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const [deletingMaterialId, setDeletingMaterialId] = useState<number | null>(null);
-  const [deletingListingId, setDeletingListingId] = useState<number | null>(null);
+  const [deletingMaterialId, setDeletingMaterialId] = useState<string | null>(null);
+  const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
 
   // Material pagination
   const [matPage, setMatPage] = useState(1);
@@ -166,7 +166,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleDeleteMaterial = async (materialId: number) => {
+  const handleDeleteMaterial = async (materialId: string) => {
     if (!window.confirm('Delete this material from your profile?')) return;
     setDeletingMaterialId(materialId);
     setErrorMessage('');
@@ -177,7 +177,7 @@ export default function ProfilePage() {
       });
       if (response.status === 401) { navigate('/auth'); return; }
       if (!response.ok) throw new Error('Failed to delete the material.');
-      setUploads((prev) => prev.filter((item) => item.id !== materialId));
+      setUploads((prev) => prev.filter((item) => item._id !== materialId));
       setMatTotal((t) => t - 1);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to delete the material.');
@@ -186,7 +186,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleDeleteListing = async (listingId: number) => {
+  const handleDeleteListing = async (listingId: string) => {
     if (!window.confirm('Delete this listing from your profile?')) return;
     setDeletingListingId(listingId);
     setErrorMessage('');
@@ -197,7 +197,7 @@ export default function ProfilePage() {
       });
       if (response.status === 401) { navigate('/auth'); return; }
       if (!response.ok) throw new Error('Failed to delete the listing.');
-      setListings((prev) => prev.filter((item) => item.id !== listingId));
+      setListings((prev) => prev.filter((item) => item._id !== listingId));
       setListTotal((t) => t - 1);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to delete the listing.');
@@ -308,7 +308,7 @@ export default function ProfilePage() {
                       <p className="text-xs text-gray-400">No transactions yet.</p>
                     ) : (
                       creditLogs.slice(0, 5).map((log) => (
-                        <div key={log.id} className="flex justify-between text-xs">
+                        <div key={log._id} className="flex justify-between text-xs">
                           <span className="text-gray-600 truncate max-w-[150px]">{log.reason}</span>
                           <span className={log.amount >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>
                             {log.amount >= 0 ? '+' : ''}{log.amount} pts
@@ -355,7 +355,7 @@ export default function ProfilePage() {
             {/* Materials Tab */}
             <TabsContent value="uploads" className="mt-0 space-y-4">
               {uploads.map((item) => (
-                <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
+                <Card key={item._id} className="border-gray-100 hover:border-gray-300 transition-colors">
                   <CardContent className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400">
@@ -381,8 +381,8 @@ export default function ProfilePage() {
                         variant="ghost"
                         size="icon"
                         className="text-gray-400 hover:text-red-500"
-                        onClick={() => void handleDeleteMaterial(item.id)}
-                        disabled={deletingMaterialId === item.id}
+                        onClick={() => void handleDeleteMaterial(item._id)}
+                        disabled={deletingMaterialId === item._id}
                       >
                         <Trash2 size={20} />
                       </Button>
@@ -409,7 +409,7 @@ export default function ProfilePage() {
             {/* Marketplace Tab */}
             <TabsContent value="listings" className="mt-0 space-y-4">
               {listings.map((item) => (
-                <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
+                <Card key={item._id} className="border-gray-100 hover:border-gray-300 transition-colors">
                   <CardContent className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="h-16 w-20 rounded-lg bg-gray-100 overflow-hidden">
@@ -433,15 +433,15 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Link to={`/marketplace/${item.id}`}>
+                      <Link to={`/marketplace/${item._id}`}>
                         <Button variant="ghost" size="sm" className="text-sm font-medium">View</Button>
                       </Link>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="text-gray-400 hover:text-red-500"
-                        onClick={() => void handleDeleteListing(item.id)}
-                        disabled={deletingListingId === item.id}
+                        onClick={() => void handleDeleteListing(item._id)}
+                        disabled={deletingListingId === item._id}
                       >
                         <Trash2 size={20} />
                       </Button>

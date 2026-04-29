@@ -13,7 +13,7 @@ const CATEGORIES = ['Books', 'Electronics', 'Stationery', 'Notes', 'Other'];
 const CONDITIONS = ['Like New', 'Good', 'Fair', 'Swap'];
 
 type Listing = {
-  id: number;
+  _id: string;
   sellerId?: number;
   title: string;
   description?: string;
@@ -288,12 +288,12 @@ export default function MarketPlacePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {listings.map((item, index) => (
-                  <Link key={item.id} to={`/marketplace/${item.id}`} className="group">
+                  <Link key={item._id} to={`/marketplace/${item._id}`} className="group">
                     <Card className="border-none shadow-none bg-transparent">
                       <CardContent className="p-0">
                         <div className="aspect-[4/3] rounded-xl overflow-hidden mb-4 relative bg-gray-100">
                           <img
-                            src={item.images?.[0] || `https://picsum.photos/seed/marketplace-${item.id}/400/300`}
+                            src={item.images?.[0] || `https://picsum.photos/seed/marketplace-${item._id}/400/300`}
                             alt={item.title}
                             className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             referrerPolicy="no-referrer"

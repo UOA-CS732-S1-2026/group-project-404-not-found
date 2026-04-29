@@ -15,19 +15,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type PendingMaterial = {
-  id: number;
+  _id: string;
   title: string;
   courseCode: string;
   description?: string;
   fileType?: string;
   fileSize?: string;
-  uploaderId: number;
+  uploaderId: string;
   createdAt: string;
   status: string;
 };
 
 type AdminUser = {
-  id: number;
+  _id: string;
   username: string;
   email: string;
   is_admin: number;
@@ -36,7 +36,7 @@ type AdminUser = {
 };
 
 type AdminCourse = {
-  id: number;
+  _id: string;
   courseCode: string;
   courseName: string;
   department?: string;
@@ -150,43 +150,43 @@ export default function AdminDashboardPage() {
   }, [materials, users, courses]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  const approveMaterial = async (id: number) => {
+  const approveMaterial = async (id: string) => {
     setMatMsg('');
     try {
       const res = await fetch(`${API_BASE_URL}/admin/materials/${id}/approve`, { method: 'PATCH', credentials: 'include' });
       if (!res.ok) throw new Error();
-      setMaterials(prev => prev.filter(m => m.id !== id));
+      setMaterials(prev => prev.filter(m => m._id !== id));
       setMatMsg('✅ Material approved! Uploader has been awarded 200 pts.');
     } catch {
       setMatMsg('Failed to approve material.');
     }
   };
 
-  const rejectMaterial = async (id: number) => {
+  const rejectMaterial = async (id: string) => {
     setMatMsg('');
     try {
       const res = await fetch(`${API_BASE_URL}/admin/materials/${id}/reject`, { method: 'PATCH', credentials: 'include' });
       if (!res.ok) throw new Error();
-      setMaterials(prev => prev.filter(m => m.id !== id));
+      setMaterials(prev => prev.filter(m => m._id !== id));
       setMatMsg('Material rejected.');
     } catch {
       setMatMsg('Failed to reject material.');
     }
   };
 
-  const deleteMaterial = async (id: number) => {
+  const deleteMaterial = async (id: string) => {
     if (!confirm('Permanently delete this material?')) return;
     try {
       await fetch(`${API_BASE_URL}/admin/materials/${id}`, { method: 'DELETE', credentials: 'include' });
-      setMaterials(prev => prev.filter(m => m.id !== id));
+      setMaterials(prev => prev.filter(m => m._id !== id));
     } catch { /* silent */ }
   };
 
-  const deleteUser = async (id: number) => {
+  const deleteUser = async (id: string) => {
     if (!confirm('Permanently delete this user and all their data?')) return;
     try {
       await fetch(`${API_BASE_URL}/admin/users/${id}`, { method: 'DELETE', credentials: 'include' });
-      setUsers(prev => prev.filter(u => u.id !== id));
+      setUsers(prev => prev.filter(u => u._id !== id));
     } catch { /* silent */ }
   };
 
@@ -229,11 +229,11 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const deleteCourse = async (id: number, code: string) => {
+  const deleteCourse = async (id: string, code: string) => {
     if (!confirm(`Delete course ${code}? This cannot be undone.`)) return;
     try {
       await fetch(`${API_BASE_URL}/admin/course/${id}`, { method: 'DELETE', credentials: 'include' });
-      setCourses(prev => prev.filter(c => c.id !== id));
+      setCourses(prev => prev.filter(c => c._id !== id));
     } catch { /* silent */ }
   };
 
@@ -364,7 +364,8 @@ export default function AdminDashboardPage() {
           ) : (
             <div className="space-y-4">
               {materials.map(m => (
-                <Card key={m.id} className="border-gray-100">
+
+                <Card key={m._id} className="border-gray-100">
                   <CardContent className="p-6 flex items-start justify-between gap-6">
                     <div className="flex items-start gap-4">
                       <div className="h-12 w-12 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center flex-shrink-0">
@@ -390,7 +391,7 @@ export default function AdminDashboardPage() {
                           <Button
                             size="sm"
                             className="h-9 bg-green-600 hover:bg-green-700 text-white font-bold"
-                            onClick={() => void approveMaterial(m.id)}
+                            onClick={() => void approveMaterial(m._id)}
                           >
                             <CheckCircle2 size={16} className="mr-1" /> Approve
                           </Button>
@@ -398,7 +399,7 @@ export default function AdminDashboardPage() {
                             size="sm"
                             variant="outline"
                             className="h-9 text-orange-600 border-orange-200 hover:bg-orange-50 font-bold"
-                            onClick={() => void rejectMaterial(m.id)}
+                            onClick={() => void rejectMaterial(m._id)}
                           >
                             <XCircle size={16} className="mr-1" /> Reject
                           </Button>
@@ -408,7 +409,7 @@ export default function AdminDashboardPage() {
                         size="icon"
                         variant="ghost"
                         className="h-9 w-9 text-gray-400 hover:text-red-500"
-                        onClick={() => void deleteMaterial(m.id)}
+                        onClick={() => void deleteMaterial(m._id)}
                       >
                         <Trash2 size={16} />
                       </Button>
@@ -435,7 +436,7 @@ export default function AdminDashboardPage() {
           ) : (
             <div className="space-y-3">
               {users.map(u => (
-                <Card key={u.id} className="border-gray-100">
+                <Card key={u._id} className="border-gray-100">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600">
@@ -456,7 +457,7 @@ export default function AdminDashboardPage() {
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 text-gray-400 hover:text-red-500"
-                        onClick={() => void deleteUser(u.id)}
+                        onClick={() => void deleteUser(u._id)}
                       >
                         <Trash2 size={16} />
                       </Button>
@@ -525,7 +526,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="space-y-3">
             {courses.map(c => (
-              <Card key={c.id} className="border-gray-100">
+              <Card key={c._id} className="border-gray-100">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold">
@@ -544,7 +545,7 @@ export default function AdminDashboardPage() {
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 text-gray-400 hover:text-red-500"
-                    onClick={() => void deleteCourse(c.id, c.courseCode)}
+                    onClick={() => void deleteCourse(c._id, c.courseCode)}
                   >
                     <Trash2 size={16} />
                   </Button>

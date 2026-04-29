@@ -9,7 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 
 type CourseAggregatedResponse = {
   course: {
-    id: number;
+    _id: string;
     courseCode: string;
     courseName: string;
     description: string;
@@ -20,14 +20,14 @@ type CourseAggregatedResponse = {
     updatedAt: string;
   };
   recentMaterials: Array<{
-    id: number;
+    _id: string;
     title: string;
     fileSize: string;
     createdAt: string;
     user?: { username: string };
   }>;
   recentListings: Array<{
-    id: number;
+    _id: string;
     title: string;
     description: string;
     price: number;
@@ -161,7 +161,7 @@ export default function CourseDetailPage() {
               </div>
             ) : (
               recentMaterials.map((item) => (
-                <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
+                <Card key={item._id} className="border-gray-100 hover:border-gray-300 transition-colors">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
@@ -213,7 +213,7 @@ export default function CourseDetailPage() {
              </div>
             ) : (
               recentListings.map((item) => (
-                <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
+                <Card key={item._id} className="border-gray-100 hover:border-gray-300 transition-colors">
                   <CardContent className="p-4 flex gap-4">
                     <div className="h-24 w-28 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                       {item.images && item.images.length > 0 ? (
@@ -236,7 +236,7 @@ export default function CourseDetailPage() {
                         <div className="flex items-center gap-1.5 text-[10px] text-gray-500 border bg-gray-50 px-2 py-0.5 rounded-full">
                            <User size={10} /> <span>{item.user?.username || 'Student User'}</span>
                         </div>
-                        <Link to={`/marketplace/${item.id}`}>
+                        <Link to={`/marketplace/${item._id}`}>
                           <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold px-3">
                             View item
                           </Button>

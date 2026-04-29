@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 type Material = {
-  id: number;
+  _id: string;
   title: string;
   courseCode: string;
   description?: string;
@@ -22,7 +22,7 @@ type Material = {
 };
 
 type CreditLog = {
-  id: number;
+  _id: string;
   amount: number;
   reason: string;
   createdAt: string;
@@ -44,7 +44,7 @@ export default function MaterialsMarketPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [userBalance, setUserBalance] = useState<number | null>(null);
   const [creditLogs, setCreditLogs] = useState<CreditLog[]>([]);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState('');
 
   // Load user's credit balance
@@ -90,10 +90,10 @@ export default function MaterialsMarketPage() {
   const handleSearch = () => void loadMaterials(searchQuery);
 
   const handleDownload = async (material: Material) => {
-    setDownloadingId(material.id);
+    setDownloadingId(material._id);
     setDownloadError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/material/${material.id}/download`, {
+      const response = await fetch(`${API_BASE_URL}/material/${material._id}/download`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -191,7 +191,7 @@ export default function MaterialsMarketPage() {
           ) : (
             <div className="space-y-4">
               {materials.map((item) => (
-                <Card key={item.id} className="border-gray-100 hover:border-gray-300 transition-colors">
+                <Card key={item._id} className="border-gray-100 hover:border-gray-300 transition-colors">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-lg overflow-hidden border flex-shrink-0 bg-gray-50 flex items-center justify-center text-gray-400 font-bold text-xs">
@@ -219,11 +219,11 @@ export default function MaterialsMarketPage() {
                         variant="ghost"
                         size="icon"
                         className="text-gray-400 hover:text-black"
-                        disabled={downloadingId === item.id}
+                        disabled={downloadingId === item._id}
                         onClick={() => void handleDownload(item)}
                         title="Download (costs pts)"
                       >
-                        {downloadingId === item.id ? (
+                        {downloadingId === item._id ? (
                           <div className="h-4 w-4 border-2 border-gray-400 border-t-black rounded-full animate-spin" />
                         ) : (
                           <Download size={24} />
@@ -264,7 +264,7 @@ export default function MaterialsMarketPage() {
                 <div className="space-y-4 mb-6">
                   <h4 className="text-sm font-bold">Recent Transactions</h4>
                   {creditLogs.map((log) => (
-                    <div key={log.id} className="flex justify-between text-sm">
+                    <div key={log._id} className="flex justify-between text-sm">
                       <span className="text-gray-600 truncate max-w-[140px]">{log.reason}</span>
                       <span className={log.amount >= 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>
                         {log.amount >= 0 ? '+' : ''}{log.amount} pts

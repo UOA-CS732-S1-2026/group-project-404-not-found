@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 type Course = {
-  id: number;
+  _id: string;
   courseCode: string;
   courseName: string;
   instructorName?: string;
@@ -158,7 +158,7 @@ export default function CourseListPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {courses.map((course) => (
-          <Card key={course.id} className="overflow-hidden border-gray-100 hover:border-gray-300 hover:shadow-md transition-all flex flex-col">
+          <Card key={course._id} className="overflow-hidden border-gray-100 hover:border-gray-300 hover:shadow-md transition-all flex flex-col">
             <CardContent className="p-6 flex-grow">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -193,7 +193,7 @@ export default function CourseListPage() {
               </div>
             </CardContent>
             <CardFooter className="p-0">
-              <Link to={`/course/${course.id}`} className="w-full">
+              <Link to={`/course/${course._id}`} className="w-full">
                 <Button variant="ghost" className="w-full h-12 rounded-none border-t font-bold hover:bg-gray-50">
                   View details
                 </Button>
