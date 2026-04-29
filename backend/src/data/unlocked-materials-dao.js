@@ -1,20 +1,93 @@
-// Unlocked Materials DAO - tracks which users have paid to access which materials
+import mongoose from "mongoose";
+import UnlockedMaterial from "../models/UnlockedMaterial.js";
 
-export let unlockedMaterials = [
-    // seed: user 1 already unlocked material 2
-    { userId: 1, materialId: 2, unlockedAt: "2025-03-10T08:00:00Z" },
-];
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
+
+// ─── Read ────────────────────────────────────────────────────────────────────
 
 // Check if a user has already unlocked a material
 export async function isUnlocked(userId, materialId) {
-    return unlockedMaterials.some(
-        r => r.userId === userId && r.materialId === materialId
-    );
+  if (!isValidObjectId(userId) || !isValidObjectId(materialId)) {
+    return false;
+  }
+
+  const record = await UnlockedMaterial.findOne({
+    userId,
+    materialId,
+  });
+
+  return !!record;
 }
+
+// Get all unlocked materials for one user
+export async function getUnlockedMaterialsByUserId(userId) {
+  if (!isValidObjectId(userId)) return [];
+
+  return await UnlockedMaterial.find({ userId }).sort({
+    unlockedAt: -1,
+  });
+}
+
+// Get all users who unlocked one material
+export async function getUnlocksByMaterialId(materialId) {
+  if (!isValidObjectId(materialId)) return [];
+
+  return await UnlockedMaterial.find({ materialId }).sort({
+    unlockedAt: -1,
+  });
+}
+
+// ─── Create ──────────────────────────────────────────────────────────────────
 
 // Record a new unlock
 export async function unlockMaterial(userId, materialId) {
-    const record = { userId, materialId, unlockedAt: new Date().toISOString() };
-    unlockedMaterials.push(record);
-    return record;
+  if (!isValidObjectId(userId) || !isValidObjectId(materialId)) {
+    throw new Error("Invalid userId or materialId");
+  }
+
+  try {
+    return await UnlockedMaterial.findOneAndUpdate(
+      { userId, materialId },
+      {
+        $setOnInsert: {
+          userId,
+          materialId,
+          unlockedAt: new Date(),
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+      }
+    );
+  } catch (err) {
+    throw err;
+  }
+}
+
+// ─── Delete (optional admin use) ────────────────────────────────────────────
+
+export async function removeUnlock(userId, materialId) {
+  if (!isValidObjectId(userId) || !isValidObjectId(materialId)) {
+    return false;
+  }
+
+  const result = await UnlockedMaterial.findOneAndDelete({
+    userId,
+    materialId,
+  });
+
+  return !!result;
+}
+
+// ─── Backward compat ────────────────────────────────────────────────────────
+
+export async function getAllUnlockedMaterials() {
+  return await UnlockedMaterial.find().sort({
+    unlockedAt: -1,
+  });
 }

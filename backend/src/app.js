@@ -7,6 +7,7 @@ import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import routes from "./routes/routes.js";
+import connectDB from "./config/db.js";
 
 // Set the backend port separately from the frontend dev server to avoid conflicts.
 const PORT = process.env.PORT ?? 3001;
@@ -39,6 +40,7 @@ app.use(express.static("public"));
 app.use("/", routes);
 
 //Make sure our database is up and running
+await connectDB();
 
 //Start the server running
 app.listen(PORT, ()=>{

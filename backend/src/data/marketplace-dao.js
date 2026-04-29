@@ -1,176 +1,225 @@
-let nextItemId = 4;
+import mongoose from "mongoose";
+import MarketplaceItem from "../models/MarketplaceItem.js";
 
-const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
+// ─── Helper ────────────────────────────────────────────────────────────────
 
-export let marketplaceItems = [
-    {
-        id: 1,
-        sellerId: 1,
-        title: "Calculus: Early Transcendentals - 3rd Edition",
-        description: "Well-kept textbook. Spine slightly creased. Ideal for first-year engineering students.",
-        price: 10.99,
-        category: "Books",
-        condition: "Good",
-        location: "Ilam Campus",
-        courseCode: "MATHS108",
-        images: [`${BASE_URL}/uploads/marketplace/book1_1.jpg`, `${BASE_URL}/uploads/marketplace/book1_2.jpg`],
-        contactMethods: { whatsapp: "+64 21 555 0123", wechat: "uoa_student_88", email: "alex.chen@aucklanduni.ac.nz", phone: "+64 9 373 7519" },
-        status: "live",
-        createdAt: "2026-04-01T00:00:00Z",
-        updatedAt: "2026-04-01T00:00:00Z",
-    },
-    {
-        id: 2,
-        sellerId: 2,
-        title: "Scientific Calculator (Casio)",
-        description: "Barely used, works perfectly. Great for course exercises.",
-        price: 18.00,
-        category: "Electronics",
-        condition: "Like New",
-        location: "City Campus",
-        courseCode: null,
-        images: [`${BASE_URL}/uploads/marketplace/calc1.jpg`],
-        contactMethods: { email: "bob@aucklanduni.ac.nz" },
-        status: "live",
-        createdAt: "2026-04-02T00:00:00Z",
-        updatedAt: "2026-04-02T00:00:00Z",
-    },
-    {
-        id: 3,
-        sellerId: 3,
-        title: "USB Drive 64GB",
-        description: "Works perfectly. Selling because I have too many.",
-        price: 8.00,
-        category: "Electronics",
-        condition: "Good",
-        location: "Online",
-        courseCode: null,
-        images: [`${BASE_URL}/uploads/marketplace/usb1.jpg`],
-        contactMethods: { email: "james@aucklanduni.ac.nz" },
-        status: "draft",
-        createdAt: "2026-04-05T00:00:00Z",
-        updatedAt: "2026-04-05T00:00:00Z",
-    },
-];
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
 
-// ─── Read ─────────────────────────────────────────────────────────────────────
+// ─── Read ──────────────────────────────────────────────────────────────────
 
+export async function getAllItems({
+  search,
+  category,
+  condition,
+  courseCode,
+  minPrice,
+  maxPrice,
+  page = 1,
+  limit = 20,
+  includeAll = false,
+} = {}) {
+  const query = {};
+
+  if (!includeAll) {
+    query.status = "live";
+  }
+
+  if (search) {
+    const q = search.trim();
+
+    query.$or = [
+      { title: { $regex: q, $options: "i" } },
+      { description: { $regex: q, $options: "i" } },
+      { courseCode: { $regex: q, $options: "i" } },
+    ];
+  }
+
+  if (category) query.category = category;
+  if (condition) query.condition = condition;
+
+  if (courseCode) {
+    query.courseCode = courseCode.trim().toUpperCase();
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    query.price = {};
+
+    if (minPrice !== undefined && minPrice !== "") {
+      query.price.$gte = Number(minPrice);
+    }
+
+    if (maxPrice !== undefined && maxPrice !== "") {
+      query.price.$lte = Number(maxPrice);
+    }
+  }
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const skip = (pageNum - 1) * limitNum;
+
+  const [items, total] = await Promise.all([
+    MarketplaceItem.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum),
+
+    MarketplaceItem.countDocuments(query),
+  ]);
+
+  return {
+    items,
+    total,
+    page: pageNum,
+    limit: limitNum,
+  };
+}
+
+// Get one item
 export async function getItemById(id) {
-    return marketplaceItems.find(item => item.id === id) || null;
+  if (!isValidObjectId(id)) return null;
+  return await MarketplaceItem.findById(id);
 }
 
+// Get seller items
 export async function getItemBysellerId(sellerId) {
-    return marketplaceItems.filter(item => item.sellerId === sellerId);
+  if (!isValidObjectId(sellerId)) return [];
+
+  return await MarketplaceItem.find({ sellerId }).sort({
+    createdAt: -1,
+  });
 }
 
-// Multi-filter with pagination (only "live" for public)
-export async function getAllItems({ search, category, courseCode, condition, minPrice, maxPrice, page = 1, limit = 20, includeAll = false } = {}) {
-    let filtered = [...marketplaceItems];
+// Similar items
+export async function getSimilarItems(
+  itemId,
+  category,
+  courseCode,
+  limit = 4
+) {
+  if (!isValidObjectId(itemId)) return [];
 
-    if (!includeAll) {
-        filtered = filtered.filter(i => i.status === "live");
-    }
-
-    if (search) {
-        const q = search.toLowerCase();
-        filtered = filtered.filter(i =>
-            i.title.toLowerCase().includes(q) ||
-            (i.description && i.description.toLowerCase().includes(q))
-        );
-    }
-    if (category) {
-        filtered = filtered.filter(i => i.category?.toLowerCase() === category.toLowerCase());
-    }
-    if (courseCode) {
-        filtered = filtered.filter(i => i.courseCode?.toLowerCase() === courseCode.toLowerCase());
-    }
-    if (condition) {
-        filtered = filtered.filter(i => i.condition?.toLowerCase() === condition.toLowerCase());
-    }
-    if (minPrice !== undefined) {
-        filtered = filtered.filter(i => i.price >= parseFloat(minPrice));
-    }
-    if (maxPrice !== undefined) {
-        filtered = filtered.filter(i => i.price <= parseFloat(maxPrice));
-    }
-
-    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    const total = filtered.length;
-    const startIdx = (page - 1) * limit;
-    const items = filtered.slice(startIdx, startIdx + parseInt(limit));
-
-    return { items, total, page: parseInt(page), limit: parseInt(limit) };
+  return await MarketplaceItem.find({
+    _id: { $ne: itemId },
+    status: "live",
+    $or: [
+      { category },
+      ...(courseCode ? [{ courseCode }] : []),
+    ],
+  })
+    .sort({ createdAt: -1 })
+    .limit(Number(limit));
 }
 
-// Similar items: same category or courseCode, exclude self, limit 4
-export async function getSimilarItems(itemId, category, courseCode) {
-    return marketplaceItems
-        .filter(i =>
-            i.id !== itemId &&
-            i.status === "live" &&
-            (i.category === category || (courseCode && i.courseCode === courseCode))
-        )
-        .slice(0, 4);
+// Recent listings by course
+export async function getRecentListingsByCourse(
+  courseCode,
+  limit = 4
+) {
+  return await MarketplaceItem.find({
+    courseCode: courseCode?.trim().toUpperCase(),
+    status: "live",
+  })
+    .sort({ createdAt: -1 })
+    .limit(Number(limit));
 }
 
-// Get recent listings for a specific course (for aggregated course detail)
-export async function getRecentListingsByCourse(courseCode, limit = 4) {
-    return marketplaceItems
-        .filter(i => i.courseCode === courseCode && i.status === "live")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, limit);
-}
-
-// ─── Create / Update / Delete ─────────────────────────────────────────────────
+// ─── Create ────────────────────────────────────────────────────────────────
 
 export async function createItem(data) {
-    const newItem = {
-        id: nextItemId++,
-        sellerId: data.sellerId,
-        title: data.title,
-        description: data.description ?? "",
-        price: parseFloat(data.price) || 0,
-        category: data.category ?? "Other",
-        condition: data.condition ?? null,
-        location: data.location ?? null,
-        courseCode: data.courseCode ?? null,
-        images: data.images ?? [],
-        contactMethods: data.contactMethods ?? {},
-        status: data.status === "live" ? "live" : "draft",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    marketplaceItems.push(newItem);
-    return newItem;
+  return await MarketplaceItem.create({
+    sellerId: data.sellerId,
+
+    title: data.title,
+    description: data.description ?? "",
+
+    price: Number(data.price) || 0,
+
+    category: data.category ?? "Others",
+    condition: data.condition ?? null,
+
+    location: data.location ?? "",
+
+    courseCode: data.courseCode
+      ? data.courseCode.trim().toUpperCase()
+      : null,
+
+    images: data.images ?? [],
+
+    contactMethods: data.contactMethods ?? {
+      whatsapp: "",
+      wechat: "",
+      email: "",
+      phone: "",
+    },
+
+    status: data.status === "live" ? "live" : "draft",
+  });
 }
+
+// ─── Update ────────────────────────────────────────────────────────────────
 
 export async function updateItemById(id, data) {
-    const item = marketplaceItems.find(item => item.id === id);
-    if (!item) return null;
+  if (!isValidObjectId(id)) return null;
 
-    const allowedFields = ["title", "description", "price", "category", "condition", "location", "courseCode", "contactMethods", "status"];
-    const updates = {};
-    for (const field of allowedFields) {
-        if (data[field] !== undefined) updates[field] = data[field];
+  const allowedFields = [
+    "title",
+    "description",
+    "price",
+    "category",
+    "condition",
+    "location",
+    "courseCode",
+    "images",
+    "contactMethods",
+    "status",
+  ];
+
+  const updates = {};
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates[field] = data[field];
     }
-    updates.updatedAt = new Date().toISOString();
+  }
 
-    Object.assign(item, updates);
-    return item;
+  if (updates.price !== undefined && updates.price !== "") {
+    updates.price = Number(updates.price);
+  }
+
+  if (updates.courseCode) {
+    updates.courseCode =
+      updates.courseCode.trim().toUpperCase();
+  }
+
+  return await MarketplaceItem.findByIdAndUpdate(
+    id,
+    updates,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 }
+
+// ─── Delete ────────────────────────────────────────────────────────────────
 
 export async function deleteItemById(id) {
-    const index = marketplaceItems.findIndex(item => item.id === id);
-    if (index === -1) return false;
-    marketplaceItems.splice(index, 1);
-    return true;
+  if (!isValidObjectId(id)) return false;
+
+  const result =
+    await MarketplaceItem.findByIdAndDelete(id);
+
+  return !!result;
 }
 
-export async function deleteItemsBySellerId(sellerId) {
-    for (let i = marketplaceItems.length - 1; i >= 0; i--) {
-        if (marketplaceItems[i].sellerId === sellerId) {
-            marketplaceItems.splice(i, 1);
-        }
-    }
+export async function deleteItemsBySellerId(
+  sellerId
+) {
+  if (!isValidObjectId(sellerId)) return false;
+
+  await MarketplaceItem.deleteMany({ sellerId });
+
+  return true;
 }

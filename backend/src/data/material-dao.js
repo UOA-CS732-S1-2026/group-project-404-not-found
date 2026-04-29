@@ -1,222 +1,228 @@
-let nextMaterialId = 5;
+import mongoose from "mongoose";
+import Material from "../models/Material.js";
 
-const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-export let materials = [
-    {
-        id: 1,
-        uploaderId: 3,
-        title: "CS732 Midterm Summary",
-        courseCode: "COMPSCI732",
-        year: 2024,
-        semester: "Sem1",
-        targetDepartment: "Computer Science",
-        description: "Summary for Week 1-6",
-        fileType: "pdf",
-        fileUrl: `${BASE_URL}/uploads/materials/sample1.pdf`,
-        fileSize: "1.2 MB",
-        downloadCost: 500,
-        status: "live",
-        createdAt: "2024-03-15T00:00:00Z",
-        updatedAt: "2024-03-15T00:00:00Z",
-    },
-    {
-        id: 2,
-        uploaderId: 1,
-        title: "CS220 Algorithm Notes",
-        courseCode: "COMPSCI220",
-        year: 2023,
-        semester: "Sem2",
-        targetDepartment: "Computer Science",
-        description: "Full semester notes",
-        fileType: "pdf",
-        fileUrl: `${BASE_URL}/uploads/materials/sample2.pdf`,
-        fileSize: "2.4 MB",
-        downloadCost: 500,
-        status: "live",
-        createdAt: "2023-11-20T00:00:00Z",
-        updatedAt: "2023-11-20T00:00:00Z",
-    },
-    {
-        id: 3,
-        uploaderId: 5,
-        title: "MATHS108 Exam Prep",
-        courseCode: "MATHS108",
-        year: 2025,
-        semester: "Sem1",
-        targetDepartment: "Mathematics",
-        description: "Exam practice questions",
-        fileType: "pdf",
-        fileUrl: `${BASE_URL}/uploads/materials/sample3.pdf`,
-        fileSize: "800 KB",
-        downloadCost: 500,
-        status: "live",
-        createdAt: "2025-02-01T00:00:00Z",
-        updatedAt: "2025-02-01T00:00:00Z",
-    },
-    {
-        id: 4,
-        uploaderId: 2,
-        title: "ENGL210 Essay Guide (Pending Review)",
-        courseCode: "ENGL210",
-        year: 2026,
-        semester: "Sem1",
-        targetDepartment: "English",
-        description: "Draft upload pending review",
-        fileType: "docx",
-        fileUrl: null,
-        fileSize: "340 KB",
-        downloadCost: 300,
-        status: "pending",
-        createdAt: "2026-04-01T00:00:00Z",
-        updatedAt: "2026-04-01T00:00:00Z",
-    },
-];
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
 
 // ─── Read ────────────────────────────────────────────────────────────────────
 
 export async function getMaterialById(id) {
-    return materials.find(m => m.id === id) || null;
+  if (!isValidObjectId(id)) return null;
+  return await Material.findById(id);
 }
 
 export async function getMaterialByUploaderId(uploaderId) {
-    return materials.filter(m => m.uploaderId === uploaderId);
+  if (!isValidObjectId(uploaderId)) return [];
+  return await Material.find({ uploaderId }).sort({ createdAt: -1 });
 }
 
-// Multi-filter with pagination (only "live" for public)
-export async function getMaterialFiltered({ search, courseCode, year, level, semester, type, department, page = 1, limit = 20, includeAll = false }) {
-    let filtered = [...materials];
+export async function getMaterialFiltered({
+  search,
+  courseCode,
+  year,
+  level,
+  semester,
+  type,
+  department,
+  page = 1,
+  limit = 20,
+  includeAll = false,
+} = {}) {
+  const query = {};
 
-    if (!includeAll) {
-        filtered = filtered.filter(m => m.status === "live");
-    }
+  if (!includeAll) {
+    query.status = "live";
+  }
 
-    if (search) {
-        const q = search.toLowerCase();
-        filtered = filtered.filter(m =>
-            m.title.toLowerCase().includes(q) ||
-            (m.description && m.description.toLowerCase().includes(q)) ||
-            m.courseCode.toLowerCase().includes(q)
-        );
-    }
-    if (courseCode) {
-        filtered = filtered.filter(m => m.courseCode.toLowerCase() === courseCode.toLowerCase());
-    }
-    if (year) {
-        filtered = filtered.filter(m => m.year === parseInt(year));
-    }
-    if (semester) {
-        filtered = filtered.filter(m => m.semester?.toLowerCase() === semester.toLowerCase());
-    }
-    if (type) {
-        filtered = filtered.filter(m => m.fileType?.toLowerCase() === type.toLowerCase());
-    }
-    if (department) {
-        filtered = filtered.filter(m => m.targetDepartment?.toLowerCase() === department.toLowerCase());
-    }
-    if (level) {
-        // Filter by course level: COMPSCI732 → 700, MATHS108 → 100
-        const lvl = parseInt(level);
-        filtered = filtered.filter(m => {
-            const match = m.courseCode.match(/(\d)/);
-            if (!match) return false;
-            const courseLvl = parseInt(match[1]) * 100;
-            return courseLvl === lvl;
-        });
-    }
+  if (search) {
+    const q = search.trim();
+    query.$or = [
+      { title: { $regex: q, $options: "i" } },
+      { description: { $regex: q, $options: "i" } },
+      { courseCode: { $regex: q, $options: "i" } },
+    ];
+  }
 
-    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (courseCode) {
+    query.courseCode = courseCode.trim().toUpperCase();
+  }
 
-    const total = filtered.length;
-    const startIdx = (page - 1) * limit;
-    const items = filtered.slice(startIdx, startIdx + parseInt(limit));
+  if (year) {
+    query.year = parseInt(year);
+  }
 
-    return { items, total, page: parseInt(page), limit: parseInt(limit) };
+  if (semester) {
+    query.semester = { $regex: `^${semester}$`, $options: "i" };
+  }
+
+  if (type) {
+    query.fileType = { $regex: `^${type}$`, $options: "i" };
+  }
+
+  if (department) {
+    query.targetDepartment = { $regex: `^${department}$`, $options: "i" };
+  }
+
+  // Only apply level filtering when courseCode is not already specified.
+  // Example: COMPSCI732 -> 700 level.
+  if (level && !courseCode) {
+    const lvl = parseInt(level);
+    const firstDigit = Math.floor(lvl / 100);
+
+    if (!Number.isNaN(firstDigit)) {
+      query.courseCode = {
+        $regex: new RegExp(`^[A-Z]+${firstDigit}`),
+      };
+    }
+  }
+
+  const pageNum = parseInt(page) || 1;
+  const limitNum = parseInt(limit) || 20;
+  const skip = (pageNum - 1) * limitNum;
+
+  const [items, total] = await Promise.all([
+    Material.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+    Material.countDocuments(query),
+  ]);
+
+  return {
+    items,
+    total,
+    page: pageNum,
+    limit: limitNum,
+  };
 }
 
 export async function getMaterialByStatus(status) {
-    return materials.filter(m => m.status === status);
+  return await Material.find({ status }).sort({ createdAt: -1 });
 }
 
-// Get recent materials for a specific course (for aggregated course detail)
 export async function getRecentMaterialsByCourse(courseCode, limit = 3) {
-    return materials
-        .filter(m => m.courseCode === courseCode && m.status === "live")
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, limit);
+  return await Material.find({
+    courseCode: courseCode?.trim().toUpperCase(),
+    status: "live",
+  })
+    .sort({ createdAt: -1 })
+    .limit(parseInt(limit) || 3);
 }
 
-// ─── Create / Update / Delete ─────────────────────────────────────────────────
+// ─── Create / Update / Delete ────────────────────────────────────────────────
 
 export async function createMaterial(data) {
-    const newMaterial = {
-        id: nextMaterialId++,
-        uploaderId: data.uploaderId,
-        title: data.title,
-        courseCode: data.courseCode,
-        year: data.year ? parseInt(data.year) : null,
-        semester: data.semester ?? null,
-        targetDepartment: data.targetDepartment ?? null,
-        description: data.description ?? "",
-        fileType: data.fileType ?? null,
-        fileUrl: data.fileUrl ?? null,
-        fileSize: data.fileSize ?? null,
-        downloadCost: data.downloadCost ? parseInt(data.downloadCost) : 500,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    materials.push(newMaterial);
-    return newMaterial;
+  return await Material.create({
+    uploaderId: data.uploaderId,
+    title: data.title,
+    courseCode: data.courseCode?.trim().toUpperCase(),
+    year:
+      data.year !== undefined && data.year !== ""
+        ? parseInt(data.year)
+        : undefined,
+    semester: data.semester ?? null,
+    targetDepartment: data.targetDepartment ?? null,
+    description: data.description ?? "",
+    fileType: data.fileType ?? null,
+    fileUrl: data.fileUrl,
+    fileSize: data.fileSize ?? null,
+    downloadCost:
+      data.downloadCost !== undefined && data.downloadCost !== ""
+        ? parseInt(data.downloadCost)
+        : 500,
+    status: "pending",
+  });
 }
 
 export async function updateMaterialById(id, data) {
-    const material = materials.find(m => m.id === id);
-    if (!material) return null;
+  if (!isValidObjectId(id)) return null;
 
-    const allowedFields = ["title", "courseCode", "year", "semester", "targetDepartment", "description", "fileType", "downloadCost"];
-    const updates = {};
-    for (const field of allowedFields) {
-        if (data[field] !== undefined) updates[field] = data[field];
+  const allowedFields = [
+    "title",
+    "courseCode",
+    "year",
+    "semester",
+    "targetDepartment",
+    "description",
+    "fileType",
+    "downloadCost",
+  ];
+
+  const updates = {};
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates[field] = data[field];
     }
-    updates.updatedAt = new Date().toISOString();
+  }
 
-    Object.assign(material, updates);
-    return material;
+  if (updates.courseCode) {
+    updates.courseCode = updates.courseCode.trim().toUpperCase();
+  }
+
+  if (updates.year !== undefined) {
+    if (updates.year === "") {
+      delete updates.year;
+    } else {
+      updates.year = parseInt(updates.year);
+    }
+  }
+
+  if (updates.downloadCost !== undefined) {
+    if (updates.downloadCost === "") {
+      delete updates.downloadCost;
+    } else {
+      updates.downloadCost = parseInt(updates.downloadCost);
+    }
+  }
+
+  return await Material.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  });
 }
 
 export async function approveMaterial(id) {
-    const material = materials.find(m => m.id === id);
-    if (!material) return null;
-    material.status = "live";
-    material.updatedAt = new Date().toISOString();
-    return material;
+  if (!isValidObjectId(id)) return null;
+
+  return await Material.findByIdAndUpdate(
+    id,
+    { status: "live" },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 }
 
 export async function rejectMaterial(id) {
-    const material = materials.find(m => m.id === id);
-    if (!material) return null;
-    material.status = "rejected";
-    material.updatedAt = new Date().toISOString();
-    return material;
+  if (!isValidObjectId(id)) return null;
+
+  return await Material.findByIdAndUpdate(
+    id,
+    { status: "rejected" },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
 }
 
 export async function deleteMaterialById(id) {
-    const index = materials.findIndex(m => m.id === id);
-    if (index === -1) return false;
-    materials.splice(index, 1);
-    return true;
+  if (!isValidObjectId(id)) return false;
+
+  const result = await Material.findByIdAndDelete(id);
+  return !!result;
 }
 
 export async function deleteMaterialsByUploaderId(uploaderId) {
-    for (let i = materials.length - 1; i >= 0; i--) {
-        if (materials[i].uploaderId === uploaderId) {
-            materials.splice(i, 1);
-        }
-    }
+  if (!isValidObjectId(uploaderId)) return false;
+
+  await Material.deleteMany({ uploaderId });
+  return true;
 }
 
 // Kept for backward compat
 export async function getAllMaterials() {
-    return materials;
+  return await Material.find().sort({ createdAt: -1 });
 }
