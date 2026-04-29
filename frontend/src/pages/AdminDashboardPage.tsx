@@ -39,9 +39,15 @@ type AdminCourse = {
   _id: string;
   courseCode: string;
   courseName: string;
+  description?: string;
+  instructorName?: string;
   department?: string;
   level?: number;
+  semester?: string;
+  seatsLeft?: number;
   status?: string;
+  prerequisites?: string;
+  schedule?: string;
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -71,6 +77,12 @@ export default function AdminDashboardPage() {
   const [newCourseName, setNewCourseName] = useState('');
   const [newCourseDept, setNewCourseDept] = useState('');
   const [newCourseLevel, setNewCourseLevel] = useState('');
+  const [newCourseDesc, setNewCourseDesc] = useState('');
+  const [newCourseInstructor, setNewCourseInstructor] = useState('');
+  const [newCourseSemester, setNewCourseSemester] = useState('');
+  const [newCourseSeats, setNewCourseSeats] = useState('');
+  const [newCoursePrereqs, setNewCoursePrereqs] = useState('');
+  const [newCourseSchedule, setNewCourseSchedule] = useState('');
   const [courseMsg, setCourseMsg] = useState('');
   const [courseCreating, setCourseCreating] = useState(false);
 
@@ -207,6 +219,12 @@ export default function AdminDashboardPage() {
           courseName: newCourseName.trim(),
           department: newCourseDept.trim() || undefined,
           level: newCourseLevel ? parseInt(newCourseLevel) : undefined,
+          description: newCourseDesc.trim() || undefined,
+          instructorName: newCourseInstructor.trim() || undefined,
+          semester: newCourseSemester || undefined,
+          seatsLeft: newCourseSeats ? parseInt(newCourseSeats) : undefined,
+          prerequisites: newCoursePrereqs.trim() || undefined,
+          schedule: newCourseSchedule.trim() || undefined,
           status: 'Available',
         }),
       });
@@ -217,10 +235,9 @@ export default function AdminDashboardPage() {
       }
       const newCourse = await res.json();
       setCourses(prev => [...prev, newCourse]);
-      setNewCourseCode('');
-      setNewCourseName('');
-      setNewCourseDept('');
-      setNewCourseLevel('');
+      setNewCourseCode(''); setNewCourseName(''); setNewCourseDept(''); setNewCourseLevel('');
+      setNewCourseDesc(''); setNewCourseInstructor(''); setNewCourseSemester('');
+      setNewCourseSeats(''); setNewCoursePrereqs(''); setNewCourseSchedule('');
       setCourseMsg(`✅ Course "${newCourse.courseCode}" created successfully!`);
     } catch {
       setCourseMsg('Failed to create course.');
@@ -501,6 +518,35 @@ export default function AdminDashboardPage() {
                   <Label htmlFor="course-level">Level</Label>
                   <Input id="course-level" type="number" placeholder="e.g. 100, 200, 700" className="h-10 border-gray-200" value={newCourseLevel} onChange={e => setNewCourseLevel(e.target.value)} />
                 </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="course-instructor">Instructor</Label>
+                  <Input id="course-instructor" placeholder="e.g. Dr. Andrew Meads" className="h-10 border-gray-200" value={newCourseInstructor} onChange={e => setNewCourseInstructor(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="course-semester">Semester</Label>
+                  <select id="course-semester" className="w-full h-10 border border-gray-200 rounded-md px-3 text-sm bg-white outline-none" value={newCourseSemester} onChange={e => setNewCourseSemester(e.target.value)}>
+                    <option value="">Select semester</option>
+                    <option value="Sem1">Semester 1</option>
+                    <option value="Sem2">Semester 2</option>
+                    <option value="Summer">Summer School</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="course-seats">Seats Available</Label>
+                  <Input id="course-seats" type="number" min="0" placeholder="e.g. 30" className="h-10 border-gray-200" value={newCourseSeats} onChange={e => setNewCourseSeats(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="course-prereqs">Prerequisites</Label>
+                  <Input id="course-prereqs" placeholder="e.g. COMPSCI101 or None" className="h-10 border-gray-200" value={newCoursePrereqs} onChange={e => setNewCoursePrereqs(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="course-schedule">Schedule</Label>
+                <Input id="course-schedule" placeholder="e.g. Mon, Wed 10:00 – 11:30 • Engineering Block" className="h-10 border-gray-200" value={newCourseSchedule} onChange={e => setNewCourseSchedule(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="course-desc">Description</Label>
+                <textarea id="course-desc" placeholder="Brief course description..." className="w-full min-h-[80px] border border-gray-200 rounded-md px-3 py-2 text-sm resize-none outline-none focus:ring-1 focus:ring-black" value={newCourseDesc} onChange={e => setNewCourseDesc(e.target.value)} />
               </div>
               <Button
                 className="bg-black text-white hover:bg-gray-800 font-bold"
@@ -533,12 +579,16 @@ export default function AdminDashboardPage() {
                       {c.level ?? '?'}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-sm">{c.courseCode}</p>
                         <span className="text-gray-400 text-sm">—</span>
                         <p className="text-sm text-gray-600">{c.courseName}</p>
+                        {c.semester && <Badge variant="outline" className="rounded-md h-5 px-2 text-[10px] font-bold">{c.semester}</Badge>}
+                        {c.status && <Badge className={`rounded-md h-5 px-2 text-[10px] border ${c.status === 'Available' ? 'bg-green-50 text-green-700 border-green-200' : c.status === 'Closed' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>{c.status}</Badge>}
                       </div>
-                      {c.department && <p className="text-xs text-gray-400">{c.department}</p>}
+                      <p className="text-xs text-gray-400">
+                        {[c.department, c.instructorName && `Instructor: ${c.instructorName}`, c.seatsLeft != null && `Seats: ${c.seatsLeft}`].filter(Boolean).join(' • ') || 'No details'}
+                      </p>
                     </div>
                   </div>
                   <Button
