@@ -9,3 +9,11 @@ node_modules
 .env.*
 !.env.example
 !.env.test
+
+# User-uploaded files (stored locally, should NOT be committed)
+backend/public/uploads/avatars/*
+backend/public/uploads/materials/*
+backend/public/uploads/marketplace/*
+!backend/public/uploads/avatars/.gitkeep
+!backend/public/uploads/materials/.gitkeep
+!backend/public/uploads/marketplace/.gitkeep
