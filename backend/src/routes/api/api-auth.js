@@ -59,7 +59,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const token = createUserJWT(user.email);
+    const token = createUserJWT(user);
 
     res.cookie("authToken", token, {
       httpOnly: true,

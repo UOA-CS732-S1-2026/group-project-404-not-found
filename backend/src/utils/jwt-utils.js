@@ -26,9 +26,10 @@ export function getUsernameFromJWT(token) {
 
 export function createUserJWT(user, expiresIn = "24h") {
     
-    const payload = typeof user === 'object' 
+    const payload = (user && typeof user === 'object') 
         ? { email: user.email, username: user.username } 
-        : { email: user, username: user }; 
+        : { email: user, username: user };
 
+    
     return jwt.sign(payload, JWT_KEY, { expiresIn });
 }
