@@ -212,6 +212,7 @@ export default function App() {
       });
     } finally {
       setCurrentUser(null);
+      window.location.href = '/';
     }
   };
 

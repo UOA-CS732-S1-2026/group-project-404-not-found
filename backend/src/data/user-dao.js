@@ -41,7 +41,9 @@ export async function createUser(data) {
   }
 
   const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
-  const avatarId = data.avatarId ?? 1;
+  const defaultAssets = ["Asset 2.png", "Asset 3.png", "Asset 4.png", "Asset 6.png", "Asset 7.png"];
+  const randomAsset = defaultAssets[Math.floor(Math.random() * defaultAssets.length)];
+  const assetName = data.avatarId ? defaultAssets[(data.avatarId - 1) % defaultAssets.length] : randomAsset;
 
   return await User.create({
     username,
@@ -53,7 +55,7 @@ export async function createUser(data) {
     phone: data.phone?.trim() || null,
     description: data.description ?? "",
     dob: data.dob ?? null,
-    avatarUrl: `${BASE_URL}/uploads/avatars/default_${avatarId}.png`,
+    avatarUrl: `${BASE_URL}/images/${assetName}`,
     notifPrefs: data.notifPrefs ?? {
       email: true,
       push: false,

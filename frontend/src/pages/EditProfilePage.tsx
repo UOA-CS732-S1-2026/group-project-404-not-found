@@ -11,11 +11,11 @@ import { Link, useNavigate } from 'react-router-dom';
 const API_BASE_URL = 'http://localhost:3001';
 
 const DEFAULT_AVATARS = [
-  `${API_BASE_URL}/uploads/avatars/default_1.png`,
-  `${API_BASE_URL}/uploads/avatars/default_2.png`,
-  `${API_BASE_URL}/uploads/avatars/default_3.png`,
-  `${API_BASE_URL}/uploads/avatars/default_4.png`,
-  `${API_BASE_URL}/uploads/avatars/default_5.png`,
+  `${API_BASE_URL}/images/Asset 2.png`,
+  `${API_BASE_URL}/images/Asset 3.png`,
+  `${API_BASE_URL}/images/Asset 4.png`,
+  `${API_BASE_URL}/images/Asset 6.png`,
+  `${API_BASE_URL}/images/Asset 7.png`,
 ];
 
 type EditableProfile = {
