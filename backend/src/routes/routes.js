@@ -16,7 +16,7 @@ router.get("/", (req, res)=>{
  */
 
 import apiRoutes from "./api/api.js";
-router.use("/", apiRoutes);
+router.use("/api", apiRoutes);
 
 export default router;
 
