@@ -4,8 +4,12 @@ import {
   createItem,
   getItemById,
   getSimilarItems,
+  deleteItemById,
+  updateItemById,
 } from "../../data/marketplace-dao.js";
 import { requiresAuthentication } from "../../middleware/auth-middleware.js";
+import { isValidObjectId } from "mongoose";
+import { isAdmin } from "../../middleware/admin-middleware.js";
 import {
   uploadMarketplaceImages,
   filePathToUrl,
@@ -141,5 +145,108 @@ router.post("/", requiresAuthentication, (req, res) => {
     }
   });
 });
+
+router.patch("/:id", requiresAuthentication, (req, res) => {
+  uploadMarketplaceImages(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      const itemId = req.params.id;
+      const item = await getItemById(itemId);
+
+      if (!item) {
+        return res.status(404).json({ error: "Listing not found" });
+      }
+
+      const isOwner = item.sellerId.toString() === req.user.id;
+      const isAdminUser = req.user.is_admin === 1;
+
+      if (!isOwner && !isAdminUser) {
+        return res.status(403).json({ error: "Unauthorized to edit this listing" });
+      }
+
+      const {
+        title,
+        price,
+        category,
+        description,
+        condition,
+        location,
+        courseCode,
+        contactMethods,
+        status,
+      } = req.body;
+
+      if (!title?.trim()) {
+        return res.status(400).json({ error: "Title is required" });
+      }
+      if (price === undefined || isNaN(price) || Number(price) < 0) {
+        return res.status(400).json({ error: "Valid price is required" });
+      }
+
+      const images = (req.files || []).map((f) => filePathToUrl(f.path));
+
+      let parsedContact = {};
+      if (contactMethods) {
+        try {
+          parsedContact = typeof contactMethods === "string"
+            ? JSON.parse(contactMethods)
+            : contactMethods;
+        } catch {
+          return res.status(400).json({
+            error: "contactMethods must be a valid JSON string",
+          });
+        } 
+      }
+      else {
+        parsedContact = item.contactMethods;
+      } 
+      
+      const updatedItem = await updateItemById(itemId, {
+        title,
+        price,
+        category,
+        description,
+        condition,
+        location,
+        courseCode,
+        contactMethods: parsedContact,
+        status,
+        images: images.length > 0 ? images : undefined, // Only update if new images are uploaded
+      });
+      if (updatedItem) return res.json(updatedItem);
+      return res.status(404).json({ error: "Listing not found after update" });
+    } catch (err) {
+      res.status(500).json({
+        error: err.message || "Failed to update listing",
+      });
+    }
+  });
+});
+
+router.delete("/:id", requiresAuthentication, async (req, res) => {
+  try {
+    const itemId = req.params.id;
+    const item = await getItemById(itemId);
+
+    if (!item) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+
+    const isOwner = item.sellerId.toString() === req.user.id;
+    const isAdminUser = req.user.is_admin === 1;
+
+    if (!isOwner && !isAdminUser) {
+      return res.status(403).json({ error: "Unauthorized to delete this listing" });
+    }
+
+    const success = await deleteItemById(itemId);
+    if (success) return res.status(204).json({ message: "Listing deleted successfully" });
+
+    return res.status(404).json({ error: "Listing not found during deletion" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete listing" });
+  }
+});
+
 
 export default router;
