@@ -1,12 +1,34 @@
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 
-export function getUsernameFromJWT(token){
+const JWT_KEY = process.env.JWT_KEY?.trim() || "uoa-swap-dev-secret";
 
-    const decoded = jwt.verify(token, process.env.JWT_KEY);
-    if(!decoded.username) throw `JWT is valid but did not contain a username.`;
-    return decoded.username;
+// 1. based on email 
+export function getEmailFromJWT(token) {
+    try {
+        const decoded = jwt.verify(token, JWT_KEY);
+        if (!decoded.email) throw new Error("JWT did not contain an email.");
+        return decoded.email;
+    } catch (err) {
+        throw err;
+    }
 }
 
-export function createUserJWT(username, expiresIn = "24h"){
-    return jwt.sign({username}, process.env.JWT_KEY, {expiresIn});
+// 2. based on username
+export function getUsernameFromJWT(token) {
+    try {
+        const decoded = jwt.verify(token, JWT_KEY);
+        if (!decoded.username) throw new Error("JWT did not contain a username.");
+        return decoded.username;
+    } catch (err) {
+        throw err;
+    }
+}
+
+export function createUserJWT(user, expiresIn = "24h") {
+    
+    const payload = typeof user === 'object' 
+        ? { email: user.email, username: user.username } 
+        : { email: user, username: user }; 
+
+    return jwt.sign(payload, JWT_KEY, { expiresIn });
 }
