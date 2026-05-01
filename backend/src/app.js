@@ -7,6 +7,7 @@ import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import routes from "./routes/routes.js";
+import connectDB from "./config/db.js";
 
 //Set's our port to the PORT environment variable, or 3000 by default if the env is not configured.
 const PORT = process.env.PORT ?? 3000;
@@ -38,6 +39,7 @@ app.use(express.static("public"));
 app.use("/", routes);
 
 //Make sure our database is up and running
+connectDB();
 
 //Start the server running
 app.listen(PORT, ()=>{
