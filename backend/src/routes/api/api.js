@@ -30,7 +30,9 @@ router.use("/course", courseRoutes);
 import creditRoutes from "./api-credit.js";
 router.use("/credit", creditRoutes);
 
-
+//Files (GridFS)
+import filesRoutes from "./api-files.js";
+router.use("/files", filesRoutes);
 
 export default router;
 

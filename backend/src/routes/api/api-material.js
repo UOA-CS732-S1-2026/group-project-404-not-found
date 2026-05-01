@@ -99,7 +99,7 @@ router.post("/", requiresAuthentication, (req, res) => {
       }
 
       const fileUrl = req.file
-        ? filePathToUrl(req.file.path)
+        ? filePathToUrl(req.file)
         : null;
 
       const fileSize = req.file

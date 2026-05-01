@@ -103,7 +103,7 @@ router.post("/", requiresAuthentication, (req, res) => {
         return res.status(400).json({ error: "Valid price is required" });
       }
 
-      const images = (req.files || []).map((f) => filePathToUrl(f.path));
+      const images = (req.files || []).map((f) => filePathToUrl(f));
 
       let parsedContact = {};
       if (contactMethods) {

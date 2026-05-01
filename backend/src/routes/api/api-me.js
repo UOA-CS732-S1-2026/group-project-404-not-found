@@ -87,7 +87,7 @@ router.patch("/avatar", (req, res) => {
         return res.status(400).json({ error: "No avatar file uploaded" });
       }
 
-      const avatarUrl = filePathToUrl(req.file.path);
+      const avatarUrl = filePathToUrl(req.file);
       const updated = await updateMyProfile(req.user.id, { avatarUrl });
 
       if (!updated) return res.sendStatus(404);
