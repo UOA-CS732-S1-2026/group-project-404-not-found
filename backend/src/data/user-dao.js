@@ -47,14 +47,14 @@ export async function createUser(data) {
 
   return await User.create({
     username,
-    upi: data.upi?.trim() || null,
+    upi: data.upi?.trim() || undefined,
     email,
     firstname: data.firstname ?? username,
     lastname: data.lastname ?? "",
     bio: data.bio ?? "",
-    phone: data.phone?.trim() || null,
+    phone: data.phone?.trim() || undefined,
     description: data.description ?? "",
-    dob: data.dob ?? null,
+    dob: data.dob ?? undefined,
     avatarUrl: `${BASE_URL}/images/${assetName}`,
     notifPrefs: data.notifPrefs ?? {
       email: true,
