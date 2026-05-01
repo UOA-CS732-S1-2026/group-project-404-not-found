@@ -1,35 +1,20 @@
-import { findUserByUsername, findUserByEmail } from "../data/user-dao.js"; // findUserByEmail 추가
-import jwt from "jsonwebtoken";
+import {findUserByEmail} from "../data/user-dao.js";
+import {getEmailFromJWT} from "../utils/jwt-utils.js";
 
-const JWT_KEY = process.env.JWT_KEY?.trim() || "uoa-swap-dev-secret";
-
-export async function requiresAuthentication(req, res, next) {
+export async function requiresAuthentication(req, res, next){
     const token = req.cookies?.authToken;
-    if (!token) {
-        return res.sendStatus(401);
-    }
+    if(!token) return res.sendStatus(401);
 
-    try {
-      
-        const decoded = jwt.verify(token, JWT_KEY);
-        let user = null;
+    try{
+        const email = getEmailFromJWT(token);
+        const user = await findUserByEmail(email);
+        if(!user) return res.sendStatus(401);
 
-     
-        if (decoded.username) {
-            user = await findUserByUsername(decoded.username);
-        } else if (decoded.email) {
-            user = await findUserByEmail(decoded.email);
-        }
-
-        if (!user) {
-            return res.sendStatus(401);
-        }
-
-    
         req.user = user;
+        //move admin-middleware
         next();
-    } catch (err) {
-        console.error("Authentication Failed:", err.message || err);
+    }catch(err){
+        console.error("Authentication Failed: ", err.message || err);
         return res.sendStatus(401);
     }
 }
