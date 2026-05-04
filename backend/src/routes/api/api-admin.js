@@ -3,6 +3,8 @@
 import express from "express";
 import { requiresAuthentication } from "../../middleware/auth-middleware.js";
 import { isAdmin } from "../../middleware/admin-middleware.js";
+import { deleteMaterialsByUploaderId } from "../../data/material-dao.js";
+import { deleteItemsBySellerId } from "../../data/marketplace-dao.js";
 import { deleteUserById, updateCreditBalance } from "../../data/user-dao.js";
 import User from "../../models/User.js";
 
@@ -35,8 +37,18 @@ router.get("/users", async (req, res) => {
 
 router.delete("/users/:id", async (req, res) => {
   try {
-    const success = await deleteUserById(req.params.id);
-    if (success) return res.sendStatus(204);
+    const userId = req.params.id;
+
+    // Delete all user-related data: materials, marketplace items, etc.
+    await deleteMaterialsByUploaderId(userId);
+    await deleteItemsBySellerId(userId);
+
+    const success = await deleteUserById(userId);
+    if (success) {
+      console.log(`[Admin] ${req.user.email} deleted user: ${userId}`);
+      return res.sendStatus(204);
+    }
+
     return res.status(404).json({ error: "User not found" });
   } catch (err) {
     return res.status(500).json({ error: "Internal server error during deletion" });
