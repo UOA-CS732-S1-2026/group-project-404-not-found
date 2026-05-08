@@ -11,6 +11,7 @@ import User from "../../models/User.js";
 
 const router = express.Router();
 
+const isProduction = process.env.NODE_ENV === "production";
 let transporter;
 async function getTransporter() {
   if (!transporter) {
@@ -126,6 +127,8 @@ router.post("/login", async (req, res) => {
     res.cookie("authToken", token, {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
     });
 
     const safeUser = user.toObject();
@@ -142,6 +145,8 @@ router.post("/logout", (req, res) => {
   res.cookie("authToken", "", {
     httpOnly: true,
     expires: new Date(0),
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
   });
 
   return res.sendStatus(204);
@@ -172,6 +177,8 @@ router.post("/verify-email", async (req, res) => {
     res.cookie("authToken", token, {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
     });
 
     const safeUser = user.toObject();
