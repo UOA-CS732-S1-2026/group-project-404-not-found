@@ -20,7 +20,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'verify'>(initialMode as any);
   const [showPassword, setShowPassword] = useState(false);
   
   // Login State
@@ -36,6 +36,10 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Verify State
+  const [verifyEmailTarget, setVerifyEmailTarget] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
 
   const handleLogin = async () => {
     setIsSubmitting(true);
@@ -56,7 +60,12 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
 
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        setErrorMessage(data?.error ?? data?.message ?? 'Unable to log in.');
+        if (data?.status === 'verification_required') {
+          setVerifyEmailTarget(loginEmail.trim().toLowerCase());
+          setMode('verify');
+        } else {
+          setErrorMessage(data?.error ?? data?.message ?? 'Unable to log in.');
+        }
         return;
       }
 
@@ -101,6 +110,14 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
         return;
       }
 
+      if (registerData?.status === 'verification_required') {
+        setVerifyEmailTarget(signupEmail.trim().toLowerCase());
+        setMode('verify');
+        setErrorMessage('');
+        setIsSubmitting(false);
+        return;
+      }
+
       // 2. Automatically Log in the newly registered user
       const loginResponse = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
@@ -128,6 +145,43 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
       setErrorMessage('Unable to connect to the server.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    setIsSubmitting(true);
+    setErrorMessage('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/verify-email`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verifyEmailTarget, code: verificationCode }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setErrorMessage(data?.error ?? 'Invalid verification code.');
+        return;
+      }
+      onAuthSuccess(data.user);
+      navigate('/');
+    } catch {
+      setErrorMessage('Unable to connect to server.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verifyEmailTarget }),
+      });
+      alert('A new verification code has been sent!');
+    } catch {
+      alert('Failed to resend code.');
     }
   };
 
@@ -210,6 +264,53 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
                   </CardContent>
                 </Card>
               </motion.div>
+            ) : mode === 'verify' ? (
+              <motion.div
+                key="verify"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border-none shadow-none">
+                  <CardHeader className="space-y-1 pb-8">
+                    <CardTitle className="text-3xl font-bold">Check your email</CardTitle>
+                    <p className="text-sm text-gray-500 mt-2">
+                      We've sent a 6-digit verification code to <span className="font-bold text-black">{verifyEmailTarget}</span>.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {errorMessage ? <p className="text-sm text-red-500">{errorMessage}</p> : null}
+                    <div className="space-y-2">
+                      <Label htmlFor="verification-code">Verification Code</Label>
+                      <Input
+                        id="verification-code"
+                        type="text"
+                        placeholder="123456"
+                        className="h-12 border-gray-300 text-center tracking-widest text-lg font-bold"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                        onKeyDown={(e) => e.key === 'Enter' && verificationCode.length === 6 && handleVerify()}
+                      />
+                    </div>
+                    
+                    <Button
+                      className="w-full h-12 bg-black text-white hover:bg-gray-800 text-base font-bold"
+                      onClick={handleVerify}
+                      disabled={isSubmitting || verificationCode.length !== 6}
+                    >
+                      {isSubmitting ? 'Verifying...' : 'Verify Email'}
+                    </Button>
+                    <div className="text-center text-sm flex flex-col gap-2">
+                      <span>
+                        Didn't receive the email?{' '}
+                        <button onClick={handleResendCode} className="font-bold hover:underline">Resend Code</button>
+                      </span>
+                      <button onClick={() => { setErrorMessage(''); setMode('login'); }} className="text-gray-500 hover:underline">Back to Login</button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ) : (
               <motion.div
                 key="signup"
@@ -239,7 +340,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="signup-upi">UPI (Optional)</Label>
+                        <Label htmlFor="signup-upi">UPI</Label>
                         <Input
                           id="signup-upi"
                           type="text"
@@ -250,7 +351,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="signup-phone">Phone (Optional)</Label>
+                        <Label htmlFor="signup-phone">Phone</Label>
                         <Input
                           id="signup-phone"
                           type="tel"
@@ -297,7 +398,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
                     <Button
                       className="w-full h-12 bg-black text-white hover:bg-gray-800 text-base font-bold flex items-center justify-center gap-2"
                       onClick={handleSignup}
-                      disabled={isSubmitting || !signupEmail.trim() || !signupPassword || !confirmPassword}
+                      disabled={isSubmitting || !signupEmail.trim() || !signupPassword || !confirmPassword || !upi.trim() || !phone.trim()}
                     >
                       {isSubmitting && <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                       {isSubmitting ? 'Creating Account...' : 'Create Account'}

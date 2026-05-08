@@ -64,6 +64,8 @@ export async function createUser(data) {
     password: bcrypt.hashSync(data.password, 10),
     creditBalance: 500,
     is_admin: 0,
+    isVerified: false,
+    verificationCode: data.verificationCode,
   });
 }
 

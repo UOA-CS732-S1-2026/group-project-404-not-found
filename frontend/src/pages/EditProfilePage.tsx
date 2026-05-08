@@ -92,6 +92,10 @@ export default function EditProfilePage() {
 
   // ── Profile save ─────────────────────────────────────────────────────────────
   const handleSave = async () => {
+    if (!upi.trim() || !phone.trim()) {
+      setErrorMessage('UPI and Phone Number are required fields.');
+      return;
+    }
     setIsSaving(true);
     setErrorMessage('');
     setSuccessMessage('');
@@ -104,8 +108,8 @@ export default function EditProfilePage() {
           firstname: firstName.trim() || undefined,
           lastname: lastName.trim() || undefined,
           bio: bio.trim(),
-          phone: phone.trim(),
-          upi: upi.trim(),
+          phone: phone.trim() || null,
+          upi: upi.trim() || null,
           avatarUrl: avatarUrl || undefined,
           notifPrefs,
         }),
@@ -236,11 +240,11 @@ export default function EditProfilePage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="upi">UPI / Student ID</Label>
+                <Label htmlFor="upi">UPI / Student ID <span className="text-red-500">*</span></Label>
                 <Input id="upi" placeholder="e.g. u1234567" value={upi} onChange={(e) => setUpi(e.target.value)} className="h-11 border-gray-200" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
                 <Input id="phone" placeholder="+64 21 000 0000" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 border-gray-200" />
               </div>
             </div>

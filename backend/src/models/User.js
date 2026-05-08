@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true, trim: true },
 
-    upi: { type: String, unique: true, sparse: true, trim: true },
+    upi: { type: String, required: true, unique: true, trim: true },
 
     email: {
       type: String,
@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
 
     bio: { type: String, default: "" },
-    phone: { type: String, default: null },
+    phone: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
     dob: { type: String, default: null },
 
@@ -49,6 +49,8 @@ const userSchema = new mongoose.Schema(
     // Keep the same field name as current backend DAO.
     // 0 = normal user, 1 = admin
     is_admin: { type: Number, enum: [0, 1], default: 0 },
+    isVerified: { type: Boolean, default: false },
+    verificationCode: { type: String, default: null },
   },
   { timestamps: true }
 );

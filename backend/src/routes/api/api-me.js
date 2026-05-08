@@ -48,7 +48,7 @@ router.patch("/", async (req, res) => {
     if (!updated) return res.sendStatus(404);
     res.json(safeUser(updated));
   } catch (err) {
-    res.status(400).json({ error: "Update failed" });
+    res.status(400).json({ error: err.message || "Update failed" });
   }
 });
 
