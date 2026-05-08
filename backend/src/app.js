@@ -39,10 +39,16 @@ app.use(express.static("public"));
 //Import and use our application routes.
 app.use("/", routes);
 
-//Make sure our database is up and running
-await connectDB();
+async function startServer() {
+  try {
+    await connectDB();
 
-//Start the server running
-app.listen(PORT, ()=>{
-    console.log(`404 NOT FOUND Project server listening on port ${PORT}`);
-});
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+  }
+}
+
+startServer();
