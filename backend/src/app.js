@@ -7,9 +7,11 @@ import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import routes from "./routes/routes.js";
+import connectDB from "./config/db.js";
 
-//Set's our port to the PORT environment variable, or 3000 by default if the env is not configured.
-const PORT = process.env.PORT ?? 3000;
+// Set the backend port separately from the frontend dev server to avoid conflicts.
+const PORT = process.env.PORT ?? 3001;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
 
 //Creates the express server
 const app = express();
@@ -26,7 +28,7 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(
     cors({
-        origin: [`http://localhost:${PORT}`, process.env.FRONTEND_ORIGIN],
+        origin: [FRONTEND_ORIGIN, 'http://localhost:3000', 'http://localhost:5173'],
         credentials: true
     })
 );
@@ -38,8 +40,9 @@ app.use(express.static("public"));
 app.use("/", routes);
 
 //Make sure our database is up and running
+await connectDB();
 
 //Start the server running
 app.listen(PORT, ()=>{
-    console.log(`404 NOT FOUND Project server listening on prot ${PORT}`);
+    console.log(`404 NOT FOUND Project server listening on port ${PORT}`);
 });

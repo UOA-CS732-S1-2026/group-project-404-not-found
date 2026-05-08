@@ -1,48 +1,122 @@
+import mongoose from "mongoose";
+import Course from "../models/Course.js";
 
-export let courses = [
-    { id: 1, courseCode: "COMPSCI732", courseName: "Software Tools and Processes" },
-    { id: 2, courseCode: "COMPSCI220", courseName: "Algorithms and Data Structures" },
-    { id: 3, courseCode: "SOFTENG281", courseName: "Object-Oriented Programming" }
-];
-
-//Search all course(A-Z)
-export async function getAllCourses(){
-    return [...courses].sort((a,b)=> a.courseCode.localeCompare(b.courseCode));
-
+export async function getCourseById(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return await Course.findById(id);
 }
 
-//Search courses using coursecode or number
-export async function getCourseBySearch(query){
-    
-    const searchTerm = query.toUpperCase();
-    return courses.filter(c=>
-        c.courseCode.toUpperCase().startsWith(searchTerm) ||
-        c.courseName.toUpperCase().includes(searchTerm)
-    ).sort((a,b)=> a.courseCode.localeCompare(b.courseCode));  
+export async function getAllCourses({ search, department, level, semester } = {}) {
+  const query = {};
+  const andConditions = [];
+
+  if (search) {
+    const q = search.trim();
+    andConditions.push({
+      $or: [
+        { courseCode: { $regex: q, $options: "i" } },
+        { courseName: { $regex: q, $options: "i" } },
+        { instructorName: { $regex: q, $options: "i" } },
+      ],
+    });
+  }
+
+  if (department) {
+    andConditions.push({ department: { $regex: department, $options: "i" } });
+  }
+
+  if (level) {
+    andConditions.push({ level: parseInt(level) });
+  }
+
+  if (semester) {
+    andConditions.push({
+      $or: [
+        { semester: { $regex: semester, $options: "i" } },
+        { vacation: { $regex: semester, $options: "i" } },
+      ],
+    });
+  }
+
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
+  }
+
+  return await Course.find(query).sort({ courseCode: 1 });
 }
 
-//Add the course information by admin
-export async function createCourse(data){
-    const newCourse = {id: courses.length +1, ... data};
-    courses.push(newCourse);
-    return newCourse;
+export async function getCourseBySearch(query) {
+  const searchTerm = query?.trim() ?? "";
+
+  return await Course.find({
+    $or: [
+      { courseCode: { $regex: `^${searchTerm}`, $options: "i" } },
+      { courseName: { $regex: searchTerm, $options: "i" } },
+    ],
+  }).sort({ courseCode: 1 });
 }
 
-//Patch the course information by admin
+export async function createCourse(data) {
+  const newCourse = {
+    courseCode: data.courseCode,
+    courseName: data.courseName,
+    description: data.description ?? "",
+    instructorName: data.instructorName ?? "",
+    instructorAvatar: data.instructorAvatar ?? null,
+    level: data.level ? parseInt(data.level) : null,
+    semester: data.semester ?? null,
+    department: data.department ?? null,
+    seatsLeft: data.seatsLeft ? parseInt(data.seatsLeft) : null,
+    status: data.status ?? "Available",
+    prerequisites: data.prerequisites ?? "None",
+    schedule: data.schedule ?? null,
+  };
+
+  return await Course.create(newCourse);
+}
+
 export async function updateCourse(id, updatedData) {
-    const index = courses.findIndex(c => c.id === id);
-    if (index === -1) return null;
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
 
-    const updatedCourse = { ...courses[index], ...updatedData, id };
-    courses[index] = updatedCourse;
-    
-    return updatedCourse;
+  const allowedFields = [
+    "courseName",
+    "description",
+    "instructorName",
+    "instructorAvatar",
+    "level",
+    "semester",
+    "department",
+    "seatsLeft",
+    "status",
+    "prerequisites",
+    "schedule",
+  ];
+
+  const updates = {};
+
+  for (const field of allowedFields) {
+    if (updatedData[field] !== undefined) {
+      updates[field] = updatedData[field];
+    }
+  }
+
+  if (updates.level !== undefined && updates.level !== null) {
+    updates.level = parseInt(updates.level);
+  }
+
+  if (updates.seatsLeft !== undefined && updates.seatsLeft !== null) {
+    updates.seatsLeft = parseInt(updates.seatsLeft);
+  }
+
+  return await Course.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  });
 }
 
-//Delete the course information by admin
-export async function deleteCourseById(id){
-    const index = courses.findIndex(c => c.id === id);
-    if(index === -1) return false;
-    courses.splice(index, 1);
-    return true;
+export async function deleteCourseById(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return false;
+
+  const result = await Course.findByIdAndDelete(id);
+  return !!result;
 }

@@ -1,102 +1,142 @@
-//For user and admin
+// For user and admin
 
 import bcrypt from "bcrypt";
+import mongoose from "mongoose";
+import User from "../models/User.js";
 
-//Hard-coding
-export let users = [
-   {
-    id: 1,
-    username: "alice",
-    firstname: "Alice",
-    lastname: "Kim",
-    password: bcrypt.hashSync("alice123", 10), 
-    description: "Hello",
-    dob: "2000-01-01",
-    avatar_id: 1,
-    is_admin: 0
-  },
-  {
-    id: 2,
-    username: "bob",
-    firstname: "Bob",
-    lastname: "Lee",
-    password: bcrypt.hashSync("bob123", 10),
-    description: "Hi",
-    dob: "1999-05-05",
-    avatar_id: 2,
-    is_admin: 0
-  },
-   {
-    id: 3,
-    username: "james",
-    firstname: "James",
-    lastname: "Jang",
-    password: bcrypt.hashSync("james123", 10),
-    description: "Good to see you",
-    dob: "1994-03-16",
-    avatar_id: 3,
-    is_admin: 0
-  },
-    {
-    id: 4,
-    username: "sky",
-    firstname: "sky",
-    lastname: "Hong",
-    password: bcrypt.hashSync("sky123", 10),
-    description: "Have fun",
-    dob: "1990-02-16",
-    avatar_id: 4,
-    is_admin: 1
-  },
-  {
-    id: 5,
-    username: "cloudy",
-    firstname: "cloudy",
-    lastname: "Hong",
-    password: bcrypt.hashSync("cloudy123", 10),
-    description: "Have fun!!!",
-    dob: "1970-02-16",
-    avatar_id: 5,
-    is_admin: 0
+// Backward compatibility for old admin route
+export let users = [];
+
+// ─── Finders ────────────────────────────────────────────────────────────────
+
+export async function findUserById(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return await User.findById(id);
+}
+
+export async function findUserByUsername(username) {
+  return await User.findOne({ username: username?.trim() });
+}
+
+export async function findUserByEmail(email) {
+  const normalizedEmail = email?.trim().toLowerCase();
+  return await User.findOne({ email: normalizedEmail });
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+export async function createUser(data) {
+  const email = data.email?.trim().toLowerCase();
+  if (!email) throw new Error("Email is required");
+  if (!data.password) throw new Error("Password is required");
+
+  if (await findUserByEmail(email)) {
+    throw new Error("Email already exists");
   }
-]
 
-//Register
-export async function createUser(data){
-    const newUser = {
-        id: users.length +1,
-        ...data,
-        password : bcrypt.hashSync(data.password, 10),
-        is_admin: 0 
-    };
-    users.push(newUser);
-    return newUser;
+  const username = data.username?.trim() || email.split("@")[0];
+
+  if (await findUserByUsername(username)) {
+    throw new Error("Username already exists");
+  }
+
+  const BASE_URL = process.env.BASE_URL ?? "http://localhost:3001";
+  const defaultAssets = ["Asset 2.png", "Asset 3.png", "Asset 4.png", "Asset 6.png", "Asset 7.png"];
+  const randomAsset = defaultAssets[Math.floor(Math.random() * defaultAssets.length)];
+  const assetName = data.avatarId ? defaultAssets[(data.avatarId - 1) % defaultAssets.length] : randomAsset;
+
+  return await User.create({
+    username,
+    upi: data.upi?.trim() || undefined,
+    email,
+    firstname: data.firstname ?? username,
+    lastname: data.lastname ?? "",
+    bio: data.bio ?? "",
+    phone: data.phone?.trim() || undefined,
+    description: data.description ?? "",
+    dob: data.dob ?? undefined,
+    avatarUrl: `${BASE_URL}/images/${assetName}`,
+    notifPrefs: data.notifPrefs ?? {
+      email: true,
+      push: false,
+      sms: false,
+    },
+    password: bcrypt.hashSync(data.password, 10),
+    creditBalance: 500,
+    is_admin: 0,
+    isVerified: false,
+    verificationCode: data.verificationCode,
+  });
 }
 
-//Login : Check Username
-export async function findUserByUsername(username){
-    return users.find(u=> u.username === username) || null;
+export async function verifyUserPassword(user, password) {
+  return bcrypt.compare(password, user.password);
 }
 
-//Login : Verify password
-export async function verifyUserPassword(user, password){
-    return bcrypt.compare(password, user.password);
+// ─── Profile Updates ─────────────────────────────────────────────────────────
+
+export async function updateMyProfile(id, data) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+  const allowedFields = [
+    "username",
+    "firstname",
+    "lastname",
+    "bio",
+    "phone",
+    "upi",
+    "dob",
+    "notifPrefs",
+    "avatarUrl",
+  ];
+
+  const updates = {};
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      updates[field] = data[field];
+    }
+  }
+
+  return await User.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  });
 }
 
-//Modify user infomation
-export async function updateMyProfile(id, data){
-    const user = users.find(u=> u.id === id);
-    if(!user) return null;
-    Object.assign(user, data);
-    return user;
+export async function changePassword(id, newPassword) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return false;
+
+  const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { password: hashedPassword },
+    { new: true }
+  );
+
+  return !!user;
 }
 
-//Delete user by themselves
-export async function deleteUserById(id){
-    const index = users.findIndex(u=>u.id === id);
-    if(index === -1) return false;
+// ─── Credit ──────────────────────────────────────────────────────────────────
 
-    users.splice(index, 1);
-    return true;
+export async function updateCreditBalance(userId, delta) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $inc: { creditBalance: delta } },
+    { new: true }
+  );
+
+  return user ? user.creditBalance : null;
 }
 
+// ─── Deletion ────────────────────────────────────────────────────────────────
+
+export async function deleteUserById(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return false;
+
+  const result = await User.findByIdAndDelete(id);
+  return !!result;
+}
