@@ -32,8 +32,18 @@ export default function CourseListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  // You can extract these from the actual data later if you prefer dynamic departments
-  const DEPARTMENTS = ['Computer Science', 'Mathematics', 'Business', 'Engineering'];
+  // Use broader categories that will match the new JSON data (e.g. "Science", "Arts", "Business")
+  const DEPARTMENTS = [
+    'Computer Science', 
+    'Business', 
+    'Engineering', 
+    'Science', 
+    'Arts', 
+    'Law', 
+    'Education', 
+    'Medical', 
+    'Fine Arts'
+  ];
 
   const loadCourses = async () => {
     setIsLoading(true);
