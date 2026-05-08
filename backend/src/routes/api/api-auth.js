@@ -17,7 +17,9 @@ async function getTransporter() {
   if (!transporter) {
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       transporter = nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
@@ -87,7 +89,7 @@ router.post("/register", async (req, res) => {
       if (!process.env.EMAIL_USER) {
         console.log("Registration Email Preview URL: %s", nodemailer.getTestMessageUrl(info));
       } else {
-        console.log(`Verification email sent to ${newUser.email}`);
+        console.log(`[DEBUG] Verification email sent to ${newUser.email}. CODE: ${verificationCode}`);
       }
     } catch (err) {
       console.error("Failed to send verification email", err);
@@ -119,7 +121,23 @@ router.post("/login", async (req, res) => {
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ error: "Please verify your email first", status: "verification_required" });
+      // Auto-resend verification code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      await User.findByIdAndUpdate(user._id, { verificationCode });
+      try {
+        const mailer = await getTransporter();
+        const fromEmail = process.env.EMAIL_USER || "noreply@uoaswap.co.nz";
+        await mailer.sendMail({
+          from: `"UoA Swap" <${fromEmail}>`,
+          to: user.email,
+          subject: "Verify your UoA Swap account (Login Attempt)",
+          text: `Your new verification code is: ${verificationCode}\n\nPlease use this to verify your account.`,
+        });
+        console.log(`[DEBUG] Login auto-resend to ${user.email}. CODE: ${verificationCode}`);
+      } catch (err) {
+        console.error("Failed to resend verification email during login", err);
+      }
+      return res.status(403).json({ error: "Please verify your email first. A new code has been sent.", status: "verification_required" });
     }
 
     const token = createUserJWT(user.email);
@@ -214,7 +232,7 @@ router.post("/resend-verification", async (req, res) => {
     if (!process.env.EMAIL_USER) {
       console.log("Resend Email Preview URL: %s", nodemailer.getTestMessageUrl(info));
     } else {
-      console.log(`Verification email resent to ${user.email}`);
+      console.log(`[DEBUG] Verification email resent to ${user.email}. CODE: ${verificationCode}`);
     }
 
     res.json({ message: "Verification code resent" });
