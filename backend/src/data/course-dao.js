@@ -8,26 +8,38 @@ export async function getCourseById(id) {
 
 export async function getAllCourses({ search, department, level, semester } = {}) {
   const query = {};
+  const andConditions = [];
 
   if (search) {
     const q = search.trim();
-    query.$or = [
-      { courseCode: { $regex: q, $options: "i" } },
-      { courseName: { $regex: q, $options: "i" } },
-      { instructorName: { $regex: q, $options: "i" } },
-    ];
+    andConditions.push({
+      $or: [
+        { courseCode: { $regex: q, $options: "i" } },
+        { courseName: { $regex: q, $options: "i" } },
+        { instructorName: { $regex: q, $options: "i" } },
+      ],
+    });
   }
 
   if (department) {
-    query.department = { $regex: `^${department}$`, $options: "i" };
+    andConditions.push({ department: { $regex: department, $options: "i" } });
   }
 
   if (level) {
-    query.level = parseInt(level);
+    andConditions.push({ level: parseInt(level) });
   }
 
   if (semester) {
-    query.semester = { $regex: `^${semester}$`, $options: "i" };
+    andConditions.push({
+      $or: [
+        { semester: { $regex: semester, $options: "i" } },
+        { vacation: { $regex: semester, $options: "i" } },
+      ],
+    });
+  }
+
+  if (andConditions.length > 0) {
+    query.$and = andConditions;
   }
 
   return await Course.find(query).sort({ courseCode: 1 });

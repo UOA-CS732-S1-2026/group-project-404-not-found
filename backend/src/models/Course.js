@@ -52,6 +52,12 @@ const courseSchema = new mongoose.Schema(
       trim: true,
     },
 
+    vacation: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     seatsLeft: {
       type: Number,
       default: null,

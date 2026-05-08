@@ -16,6 +16,7 @@ type Course = {
   department?: string;
   level?: number;
   semester?: string;
+  vacation?: string;
   status?: string;
   seatsLeft?: number;
   schedule?: string;
@@ -65,8 +66,8 @@ export default function CourseListPage() {
     void loadCourses();
   };
 
-  const totalPages = Math.ceil(courses.length / 8) || 1;
-  const paginatedCourses = courses.slice((page - 1) * 8, page * 8);
+  const totalPages = Math.ceil(courses.length / 6) || 1;
+  const paginatedCourses = courses.slice((page - 1) * 6, page * 6);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
