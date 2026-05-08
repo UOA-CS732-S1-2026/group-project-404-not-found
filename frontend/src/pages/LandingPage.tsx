@@ -8,7 +8,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden bg-white">
+      <section id="about" className="relative py-20 overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div 
@@ -23,7 +23,7 @@ export default function LandingPage() {
                 UoA SWAP is a website focused on building an efficient and user-friendly platform for seamless exchanges. On this platform, you can enjoy a smooth and engaging experience while discovering valuable resources and opportunities. We are committed to delivering an intuitive interface, reliable performance, and a convenient way to connect and share within the community.
               </p>
               <div className="flex gap-4">
-                <Link to="/auth">
+                <Link to="/profile">
                   <Button size="lg" className="bg-black text-white hover:bg-gray-800 px-8 rounded-md">
                     Get Started
                   </Button>
@@ -73,7 +73,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Download materials</h3>
                   <p className="text-gray-500 text-sm leading-relaxed">
-                    Body text for whatever you'd like to add more to the subheading.
+                    Access a wide range of study materials, past exams, and notes uploaded by top-performing students.
                   </p>
                 </CardContent>
               </Card>
@@ -84,7 +84,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Cheat Sheet</h3>
                   <p className="text-gray-500 text-sm leading-relaxed">
-                    Body text for whatever you'd like to add more to the subheading.
+                    Get concise and verified cheat sheets tailored to your specific courses to boost your exam prep.
                   </p>
                 </CardContent>
               </Card>
@@ -95,7 +95,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Upload materials</h3>
                   <p className="text-gray-500 text-sm leading-relaxed">
-                    Body text for whatever you'd like to share more.
+                    Share your own notes and materials to earn points, which you can use to download premium content.
                   </p>
                 </CardContent>
               </Card>
@@ -112,21 +112,25 @@ export default function LandingPage() {
               <h2 className="text-4xl font-bold mb-12">Course</h2>
               <div className="space-y-10">
                 <div>
-                  <h3 className="text-lg font-bold mb-2">Search Key Word</h3>
-                  <p className="text-gray-500 text-sm">Body text for whatever you'd like to expand on the main point.</p>
+                  <h3 className="text-lg font-bold mb-2">Find Your Courses</h3>
+                  <p className="text-gray-500 text-sm">Easily search for courses by code, department, or instructor to discover dedicated material and listings.</p>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-2">prerequisite</h3>
-                  <p className="text-gray-500 text-sm">Body text for whatever you'd like to say. Add main takeaway points, quotes, anecdotes.</p>
+                  <h3 className="text-lg font-bold mb-2">Discover Prerequisites</h3>
+                  <p className="text-gray-500 text-sm">Check course requirements and connect with students who have previously taken the class.</p>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-2">Course Outline</h3>
-                  <p className="text-gray-500 text-sm">Body text for whatever you'd like to add more to the main point. It provides details, explanations, and context.</p>
+                  <h3 className="text-lg font-bold mb-2">Course Specific Listings</h3>
+                  <p className="text-gray-500 text-sm">Everything is organized by course. From textbooks to cheat sheets, find exactly what you need for your semester.</p>
                 </div>
               </div>
               <div className="flex gap-4 mt-12">
-                <Button className="bg-black text-white hover:bg-gray-800">Button</Button>
-                <Button variant="secondary">Secondary button</Button>
+                <Link to="/courses">
+                  <Button className="bg-black text-white hover:bg-gray-800">Browse Courses</Button>
+                </Link>
+                <Link to="/materials">
+                  <Button variant="secondary">Find Materials</Button>
+                </Link>
               </div>
             </div>
             <div className="aspect-square rounded-3xl overflow-hidden bg-blue-50 flex items-center justify-center p-12">
@@ -141,24 +145,28 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold mb-12">Market Place</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="border-none shadow-none bg-transparent group cursor-pointer">
-              <CardContent className="p-0">
-                <div className="aspect-[16/9] rounded-2xl overflow-hidden mb-6 relative">
-                  <img src="https://picsum.photos/seed/notes-market/800/450" alt="Buy Notes" className="w-full h-full object-cover transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Buy Notes</h3>
-                <p className="text-gray-500 text-sm">Body text for whatever you'd like to add more to the subheading.</p>
-              </CardContent>
-            </Card>
-            <Card className="border-none shadow-none bg-transparent group cursor-pointer">
-              <CardContent className="p-0">
-                <div className="aspect-[16/9] rounded-2xl overflow-hidden mb-6 relative">
-                  <img src="https://picsum.photos/seed/books-market/800/450" alt="Buy Books" className="w-full h-full object-cover transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Buy Second-Hand Course Books</h3>
-                <p className="text-gray-500 text-sm">Body text for whatever you'd like to expand on the main point.</p>
-              </CardContent>
-            </Card>
+            <Link to="/marketplace?category=Notes" className="block group">
+              <Card className="border-none shadow-none bg-transparent cursor-pointer">
+                <CardContent className="p-0">
+                  <div className="aspect-[16/9] rounded-2xl overflow-hidden mb-6 relative">
+                    <img src="https://picsum.photos/seed/notes-market/800/450" alt="Trade Notes" className="w-full h-full object-cover transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2 group-hover:underline">Trade Course Notes</h3>
+                  <p className="text-gray-500 text-sm">Buy and sell comprehensive handwritten or digital notes directly with your peers.</p>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link to="/marketplace?category=Books" className="block group">
+              <Card className="border-none shadow-none bg-transparent cursor-pointer">
+                <CardContent className="p-0">
+                  <div className="aspect-[16/9] rounded-2xl overflow-hidden mb-6 relative">
+                    <img src="https://picsum.photos/seed/books-market/800/450" alt="Buy Books" className="w-full h-full object-cover transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2 group-hover:underline">Buy Second-Hand Course Books</h3>
+                  <p className="text-gray-500 text-sm">Save money by purchasing pre-loved textbooks, lab equipment, and stationery from senior students.</p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>
@@ -166,24 +174,50 @@ export default function LandingPage() {
       {/* Testimonials */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold mb-12">Section heading</h2>
+          <h2 className="text-4xl font-bold mb-12">What Students Say</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="border bg-white shadow-sm">
-                <CardContent className="p-8">
-                  <p className="text-lg mb-8">"A {i === 1 ? 'terrific piece of praise' : i === 2 ? 'fantastic bit of feedback' : 'genuinely glowing review'}"</p>
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
-                      <img src={`https://picsum.photos/seed/user-${i}/100/100`} alt="User" referrerPolicy="no-referrer" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm">Name</p>
-                      <p className="text-xs text-gray-500">Description</p>
-                    </div>
+            <Card className="border bg-white shadow-sm">
+              <CardContent className="p-8">
+                <p className="text-lg mb-8 italic">"This platform saved my life during midterms. I found the exact cheat sheet I needed for Compsci 101."</p>
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                    <img src="https://picsum.photos/seed/user-1/100/100" alt="User" referrerPolicy="no-referrer" />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <div>
+                    <p className="font-bold text-sm">Sarah</p>
+                    <p className="text-xs text-gray-500">2nd Year IT</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border bg-white shadow-sm">
+              <CardContent className="p-8">
+                <p className="text-lg mb-8 italic">"Selling my old textbooks was incredibly easy. The integration with course codes makes finding buyers a breeze."</p>
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                    <img src="https://picsum.photos/seed/user-2/100/100" alt="User" referrerPolicy="no-referrer" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">James</p>
+                    <p className="text-xs text-gray-500">3rd Year Business</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border bg-white shadow-sm">
+              <CardContent className="p-8">
+                <p className="text-lg mb-8 italic">"I love the points system! Uploading my old notes lets me download new materials without spending money."</p>
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                    <img src="https://picsum.photos/seed/user-3/100/100" alt="User" referrerPolicy="no-referrer" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">Emily</p>
+                    <p className="text-xs text-gray-500">1st Year Engineering</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -191,10 +225,14 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-24 bg-[#FAFAFA]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
-          <h2 className="text-4xl font-bold">Section heading</h2>
-          <div className="flex gap-4">
-            <Button className="bg-black text-white hover:bg-gray-800 px-8">Button</Button>
-            <Button variant="secondary" className="px-8">Secondary button</Button>
+          <h2 className="text-4xl font-bold">Ready to start swapping?</h2>
+          <div className="flex gap-4 flex-wrap">
+            <Link to="/auth">
+              <Button className="bg-black text-white hover:bg-gray-800 px-8">Sign Up Now</Button>
+            </Link>
+            <Link to="/marketplace">
+              <Button variant="secondary" className="px-8">Browse Marketplace</Button>
+            </Link>
           </div>
         </div>
       </section>

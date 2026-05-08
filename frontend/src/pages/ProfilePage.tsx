@@ -3,11 +3,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Edit2, ShoppingBag, FileText, Download, Trash2, Plus, History } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+const DEFAULT_AVATARS = [
+  `${API_BASE_URL}/images/Asset 2.png`,
+  `${API_BASE_URL}/images/Asset 3.png`,
+  `${API_BASE_URL}/images/Asset 4.png`,
+  `${API_BASE_URL}/images/Asset 6.png`,
+  `${API_BASE_URL}/images/Asset 7.png`,
+];
+
+function getRandomAvatar(email?: string) {
+  if (!email) return DEFAULT_AVATARS[0];
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = email.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % DEFAULT_AVATARS.length;
+  return DEFAULT_AVATARS[index];
+}
 
 type UserProfile = {
   _id: string;
@@ -67,6 +89,7 @@ function formatCurrency(value: number) {
 
 function statusBadge(status?: string) {
   if (status === 'live') return <Badge className="rounded-md bg-green-50 text-green-700 border border-green-200">Live</Badge>;
+  if (status === 'sold') return <Badge className="rounded-md bg-gray-100 text-gray-600 border border-gray-300">Sold Out</Badge>;
   if (status === 'pending') return <Badge className="rounded-md bg-yellow-50 text-yellow-700 border border-yellow-200">Pending</Badge>;
   if (status === 'rejected') return <Badge className="rounded-md bg-red-50 text-red-600 border border-red-200">Rejected</Badge>;
   if (status === 'draft') return <Badge variant="secondary" className="rounded-md">Draft</Badge>;
@@ -84,6 +107,60 @@ export default function ProfilePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [deletingMaterialId, setDeletingMaterialId] = useState<string | null>(null);
   const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
+
+  // Edit states
+  const [editingListing, setEditingListing] = useState<UserListing | null>(null);
+  const [editListingData, setEditListingData] = useState({ title: '', price: 0, description: '', condition: '' });
+  const [editingMaterial, setEditingMaterial] = useState<UserMaterial | null>(null);
+  const [editMaterialData, setEditMaterialData] = useState({ title: '', description: '', downloadCost: 0 });
+
+  const handleMarkAsSold = async (listingId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/me/marketplace/${listingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'sold' })
+      });
+      if (response.ok) {
+        setListings(prev => prev.map(item => item._id === listingId ? { ...item, status: 'sold' } : item));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUpdateListing = async () => {
+    if (!editingListing) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/me/marketplace/${editingListing._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(editListingData)
+      });
+      if (res.ok) {
+        setListings(prev => prev.map(i => i._id === editingListing._id ? { ...i, ...editListingData } : i));
+        setEditingListing(null);
+      }
+    } catch(e) { console.error(e); }
+  };
+
+  const handleUpdateMaterial = async () => {
+    if (!editingMaterial) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/me/material/${editingMaterial._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(editMaterialData)
+      });
+      if (res.ok) {
+        setUploads(prev => prev.map(i => i._id === editingMaterial._id ? { ...i, ...editMaterialData } : i));
+        setEditingMaterial(null);
+      }
+    } catch(e) { console.error(e); }
+  };
 
   // Material pagination
   const [matPage, setMatPage] = useState(1);
@@ -254,8 +331,7 @@ export default function ProfilePage() {
             <CardContent className="p-8">
               <div className="flex flex-col items-center text-center mb-8">
                 <Avatar className="h-24 w-24 border-4 border-white shadow-md mb-4">
-                  {/* Real avatarUrl from backend */}
-                  <AvatarImage src={user.avatarUrl ?? undefined} />
+                  <AvatarImage src={user.avatarUrl || getRandomAvatar(user.email)} />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-2xl font-bold mb-1">{fullName}</h2>
@@ -336,17 +412,17 @@ export default function ProfilePage() {
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex gap-2">
-                <Link to="/upload">
-                  <Button size="sm" className="bg-black text-white hover:bg-gray-800 h-9 px-4 font-bold">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link to="/upload" className="w-full sm:w-auto">
+                  <Button className="w-full bg-black text-white hover:bg-gray-800 font-bold shadow-md">
                     <Plus size={16} className="mr-2" />
-                    Upload
+                    Upload Material
                   </Button>
                 </Link>
-                <Link to="/create-listing">
-                  <Button variant="outline" size="sm" className="h-9 px-4 font-bold">
-                    <Plus size={16} className="mr-2" />
-                    List Item
+                <Link to="/create-listing" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full font-bold shadow-sm">
+                    <ShoppingBag size={16} className="mr-2" />
+                    Market Place
                   </Button>
                 </Link>
               </div>
@@ -377,6 +453,17 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-gray-500 hover:text-black"
+                        onClick={() => {
+                          setEditingMaterial(item);
+                          setEditMaterialData({ title: item.title, description: item.description || '', downloadCost: item.downloadCost || 0 });
+                        }}
+                      >
+                        Edit
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -436,6 +523,27 @@ export default function ProfilePage() {
                       <Link to={`/marketplace/${item._id}`}>
                         <Button variant="ghost" size="sm" className="text-sm font-medium">View</Button>
                       </Link>
+                      {item.status !== 'sold' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-sm font-medium text-gray-500 hover:text-black"
+                          onClick={() => void handleMarkAsSold(item._id)}
+                        >
+                          Mark Sold
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-gray-500 hover:text-black"
+                        onClick={() => {
+                          setEditingListing(item);
+                          setEditListingData({ title: item.title, price: item.price, description: item.description || '', condition: item.condition || '' });
+                        }}
+                      >
+                        Edit
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -467,6 +575,82 @@ export default function ProfilePage() {
           </Tabs>
         </div>
       </div>
+      {/* Dialogs */}
+      <Dialog open={!!editingListing} onOpenChange={(open) => !open && setEditingListing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Listing</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input value={editListingData.title} onChange={(e) => setEditListingData(p => ({ ...p, title: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Price (NZD)</Label>
+              <Input 
+                type="number" 
+                min="0"
+                step="0.01"
+                value={editListingData.price} 
+                onChange={(e) => {
+                  let val = parseFloat(e.target.value);
+                  if (isNaN(val)) val = 0;
+                  if (val < 0) val = 0;
+                  setEditListingData(p => ({ ...p, price: val }));
+                }} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Condition</Label>
+              <Input value={editListingData.condition} onChange={(e) => setEditListingData(p => ({ ...p, condition: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={editListingData.description} onChange={(e) => setEditListingData(p => ({ ...p, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingListing(null)}>Cancel</Button>
+            <Button onClick={() => void handleUpdateListing()} className="bg-black text-white hover:bg-gray-800">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingMaterial} onOpenChange={(open) => !open && setEditingMaterial(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit Material</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input value={editMaterialData.title} onChange={(e) => setEditMaterialData(p => ({ ...p, title: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Download Cost (pts)</Label>
+              <Input 
+                type="number" 
+                min="0"
+                max="10000"
+                step="1"
+                value={editMaterialData.downloadCost} 
+                onChange={(e) => {
+                  let val = parseInt(e.target.value, 10);
+                  if (isNaN(val)) val = 0;
+                  if (val < 0) val = 0;
+                  if (val > 10000) val = 10000;
+                  setEditMaterialData(p => ({ ...p, downloadCost: val }));
+                }} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={editMaterialData.description} onChange={(e) => setEditMaterialData(p => ({ ...p, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingMaterial(null)}>Cancel</Button>
+            <Button onClick={() => void handleUpdateMaterial()} className="bg-black text-white hover:bg-gray-800">Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

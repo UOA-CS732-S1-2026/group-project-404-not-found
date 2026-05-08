@@ -40,6 +40,7 @@ export default function MaterialsMarketPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [materials, setMaterials] = useState<Material[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [userBalance, setUserBalance] = useState<number | null>(null);
@@ -66,12 +67,14 @@ export default function MaterialsMarketPage() {
   }, []);
 
   // Load materials from API
-  const loadMaterials = async (search = '') => {
+  const loadMaterials = async (search = '', p = 1) => {
     setIsLoading(true);
     setErrorMessage('');
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.set('search', search.trim());
+      params.set('page', p.toString());
+      params.set('limit', '8');
       const response = await fetch(`${API_BASE_URL}/material?${params}`);
       if (!response.ok) throw new Error('Failed to load materials.');
       const data = await response.json();
@@ -85,9 +88,12 @@ export default function MaterialsMarketPage() {
     }
   };
 
-  useEffect(() => { void loadMaterials(); }, []);
+  useEffect(() => { void loadMaterials('', 1); }, []);
 
-  const handleSearch = () => void loadMaterials(searchQuery);
+  const handleSearch = () => {
+    setPage(1);
+    void loadMaterials(searchQuery, 1);
+  };
 
   const handleDownload = async (material: Material) => {
     setDownloadingId(material._id);
@@ -138,6 +144,8 @@ export default function MaterialsMarketPage() {
       setDownloadingId(null);
     }
   };
+
+  const totalPages = Math.ceil(total / 8) || 1;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -239,6 +247,14 @@ export default function MaterialsMarketPage() {
                   <p className="text-gray-400">No materials match your current search.</p>
                 </div>
               ) : null}
+
+              {!isLoading && totalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-8">
+                  <Button variant="outline" disabled={page === 1} onClick={() => { setPage(p => p - 1); void loadMaterials(searchQuery, page - 1); }}>Prev</Button>
+                  <span className="flex items-center px-4 font-medium text-sm">{page} / {totalPages}</span>
+                  <Button variant="outline" disabled={page === totalPages} onClick={() => { setPage(p => p + 1); void loadMaterials(searchQuery, page + 1); }}>Next</Button>
+                </div>
+              )}
             </div>
           )}
         </div>

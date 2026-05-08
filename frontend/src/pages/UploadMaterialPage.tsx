@@ -33,6 +33,18 @@ export default function UploadMaterialPage() {
   const [department, setDepartment] = useState('');
   const [description, setDescription] = useState('');
   const [downloadCost, setDownloadCost] = useState('500');
+
+  const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (val !== '') {
+      let num = parseInt(val, 10);
+      if (isNaN(num)) num = 0;
+      if (num < 0) num = 0;
+      if (num > 10000) num = 10000;
+      val = num.toString();
+    }
+    setDownloadCost(val);
+  };
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -159,7 +171,7 @@ export default function UploadMaterialPage() {
           <CardContent className="space-y-6">
             {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">Material Name</Label>
+              <Label htmlFor="title">Material Name <span className="text-red-500">*</span></Label>
               <Input
                 id="title"
                 placeholder="e.g., Advanced Algorithms - Lecture Notes"
@@ -171,7 +183,7 @@ export default function UploadMaterialPage() {
 
             {/* Course search — dynamic from backend */}
             <div className="space-y-2 relative">
-              <Label htmlFor="course-search">Course</Label>
+              <Label htmlFor="course-search">Course <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <Input
                   id="course-search"
@@ -187,6 +199,7 @@ export default function UploadMaterialPage() {
                   onBlur={() => setTimeout(() => setShowCourseSuggestions(false), 200)}
                 />
               </div>
+              <p className="text-xs text-gray-400">Please search and select the related course from the dropdown.</p>
               {showCourseSuggestions && filteredCourses.length > 0 && !selectedCourse && (
                 <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
                   {filteredCourses.map(c => (
@@ -212,7 +225,7 @@ export default function UploadMaterialPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Year */}
               <div className="space-y-2">
-                <Label htmlFor="year">Year</Label>
+                <Label htmlFor="year">Year <span className="text-red-500">*</span></Label>
                 <Input
                   id="year"
                   type="number"
@@ -225,14 +238,16 @@ export default function UploadMaterialPage() {
 
               {/* Download Cost */}
               <div className="space-y-2">
-                <Label htmlFor="cost">Download Cost (pts)</Label>
+                <Label htmlFor="cost">Download Cost (pts) <span className="text-red-500">*</span></Label>
                 <Input
                   id="cost"
                   type="number"
+                  min="0"
+                  max="10000"
                   placeholder="500"
                   className="h-11 border-gray-200"
                   value={downloadCost}
-                  onChange={(e) => setDownloadCost(e.target.value)}
+                  onChange={handleCostChange}
                 />
               </div>
             </div>

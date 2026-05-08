@@ -29,6 +29,7 @@ export default function CourseListPage() {
   const [level, setLevel] = useState('');
   const [semester, setSemester] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   // You can extract these from the actual data later if you prefer dynamic departments
   const DEPARTMENTS = ['Computer Science', 'Mathematics', 'Business', 'Engineering'];
@@ -54,13 +55,18 @@ export default function CourseListPage() {
   };
 
   useEffect(() => {
+    setPage(1);
     void loadCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [department, level, semester]); // re-run automatically when filters change
 
   const handleSearch = () => {
+    setPage(1);
     void loadCourses();
   };
+
+  const totalPages = Math.ceil(courses.length / 8) || 1;
+  const paginatedCourses = courses.slice((page - 1) * 8, page * 8);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -157,7 +163,7 @@ export default function CourseListPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {courses.map((course) => (
+        {paginatedCourses.map((course) => (
           <Card key={course._id} className="overflow-hidden border-gray-100 hover:border-gray-300 hover:shadow-md transition-all flex flex-col">
             <CardContent className="p-6 flex-grow">
               <div className="flex justify-between items-start mb-4">
@@ -203,13 +209,12 @@ export default function CourseListPage() {
         ))}
       </div>
 
-      {/* Basic Pagination Mock (can be wired later if GET /course supports page/limit) */}
-      {!isLoading && courses.length > 0 && (
-        <div className="flex justify-center items-center gap-2">
-           {/* Replace with actual pagination if pagination is added to GET /course */}
-          <Button variant="outline" size="icon" className="h-10 w-10 disabled:opacity-50" disabled><ChevronLeft size={20} /></Button>
-          <Button className="h-10 w-10 p-0 bg-black text-white">1</Button>
-          <Button variant="outline" size="icon" className="h-10 w-10 disabled:opacity-50" disabled><ChevronRight size={20} /></Button>
+      {/* Pagination */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
+          <span className="flex items-center px-4 font-medium text-sm">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell, User, Settings, BookOpen, ShoppingBag } from 'lucide-react';
+import { User, Settings, BookOpen, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 // Real Page Components
@@ -19,6 +19,24 @@ import CreateListingPage from './pages/CreateListingPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+const DEFAULT_AVATARS = [
+  `${API_BASE_URL}/images/Asset 2.png`,
+  `${API_BASE_URL}/images/Asset 3.png`,
+  `${API_BASE_URL}/images/Asset 4.png`,
+  `${API_BASE_URL}/images/Asset 6.png`,
+  `${API_BASE_URL}/images/Asset 7.png`,
+];
+
+function getRandomAvatar(email?: string) {
+  if (!email) return DEFAULT_AVATARS[0];
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = email.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % DEFAULT_AVATARS.length;
+  return DEFAULT_AVATARS[index];
+}
 
 type CurrentUser = {
   id: number;
@@ -78,15 +96,13 @@ function Navbar({
                   <ShoppingBag size={16} />
                   <span>{(currentUser?.creditBalance ?? 0).toLocaleString()} pts</span>
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Bell size={20} />
-                </Button>
+
                 <Button variant="ghost" className="text-sm font-medium" onClick={onLogout}>
                   Log out
                 </Button>
                 <Link to="/profile">
                   <Avatar className="h-9 w-9 border cursor-pointer hover:opacity-80 transition-opacity">
-                    <AvatarImage src={currentUser?.avatarUrl ?? undefined} />
+                    <AvatarImage src={currentUser?.avatarUrl || getRandomAvatar(currentUser?.email)} />
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                 </Link>
@@ -136,17 +152,15 @@ function Footer() {
             </ul>
           </div>
           <div>
-            <h3 className="font-semibold text-sm mb-4">Service</h3>
+            <h3 className="font-semibold text-sm mb-4">About</h3>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link to="/marketplace" className="hover:text-black">Trades</Link></li>
-              <li><Link to="/events" className="hover:text-black">Events</Link></li>
+              <li><a href="/#about" className="hover:text-black">About UoA Swap</a></li>
             </ul>
           </div>
           <div>
             <h3 className="font-semibold text-sm mb-4">Help</h3>
             <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link to="/contact" className="hover:text-black">Contact us</Link></li>
-              <li><Link to="/report" className="hover:text-black">Report</Link></li>
+              <li><a href="mailto:admin@example.com?subject=Report%20an%20Issue" className="hover:text-black">Report</a></li>
             </ul>
           </div>
         </div>

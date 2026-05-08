@@ -24,16 +24,17 @@ type EditableProfile = {
   email: string;
   firstname?: string;
   lastname?: string;
+  avatarUrl?: string;
   bio?: string;
   upi?: string;
   phone?: string;
-  avatarUrl?: string;
+
   notifPrefs?: { email: boolean; push: boolean; sms: boolean };
 };
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
-  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   const [profile, setProfile] = useState<EditableProfile | null>(null);
 
   // Profile fields
@@ -43,6 +44,7 @@ export default function EditProfilePage() {
   const [phone, setPhone] = useState('');
   const [upi, setUpi] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+
   const [notifPrefs, setNotifPrefs] = useState({ email: true, push: false, sms: false });
 
   // Password change
@@ -56,7 +58,7 @@ export default function EditProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState('');
   const [pwError, setPwError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -77,6 +79,7 @@ export default function EditProfilePage() {
         setPhone(data.phone ?? '');
         setUpi(data.upi ?? '');
         setAvatarUrl(data.avatarUrl ?? '');
+
         setNotifPrefs(data.notifPrefs ?? { email: true, push: false, sms: false });
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Unable to load your profile.');
@@ -86,39 +89,6 @@ export default function EditProfilePage() {
     };
     void loadProfile();
   }, [navigate]);
-
-  // ── Avatar upload ────────────────────────────────────────────────────────────
-  const handleAvatarFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingAvatar(true);
-    setErrorMessage('');
-    try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-
-      const res = await fetch(`${API_BASE_URL}/me/avatar`, {
-        method: 'PATCH',
-        credentials: 'include',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setErrorMessage(data.error ?? 'Failed to upload avatar');
-        return;
-      }
-      const data = await res.json();
-      setAvatarUrl(data.avatarUrl);
-      setSuccessMessage('Avatar updated!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch {
-      setErrorMessage('Failed to upload avatar.');
-    } finally {
-      setIsUploadingAvatar(false);
-    }
-  };
 
   // ── Profile save ─────────────────────────────────────────────────────────────
   const handleSave = async () => {
@@ -136,6 +106,7 @@ export default function EditProfilePage() {
           bio: bio.trim(),
           phone: phone.trim(),
           upi: upi.trim(),
+          avatarUrl: avatarUrl || undefined,
           notifPrefs,
         }),
       });
@@ -224,52 +195,28 @@ export default function EditProfilePage() {
           <div className="rounded-xl border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">{successMessage}</div>
         )}
 
-        {/* Avatar */}
+        {/* Avatar Selection */}
         <Card className="border-gray-100 shadow-sm">
           <CardHeader><CardTitle className="text-lg font-bold">Profile Picture</CardTitle></CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="relative">
-                <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
-                  <AvatarImage src={avatarUrl || undefined} />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
+            <div className="flex gap-4 flex-wrap">
+              {DEFAULT_AVATARS.map((url) => (
                 <button
+                  key={url}
                   type="button"
-                  className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-black text-white flex items-center justify-center border-4 border-white hover:bg-gray-800 transition-colors disabled:opacity-50"
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={isUploadingAvatar}
+                  onClick={() => setAvatarUrl(url)}
+                  className={`relative rounded-full overflow-hidden h-20 w-20 border-4 transition-all ${avatarUrl === url ? 'border-black scale-110' : 'border-transparent hover:border-gray-200'}`}
                 >
-                  {isUploadingAvatar ? (
-                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <Camera size={18} />
+                  <img src={url} alt="Avatar option" className="w-full h-full object-cover" />
+                  {avatarUrl === url && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <Check className="text-white" size={24} />
+                    </div>
                   )}
                 </button>
-                <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/gif" className="hidden" onChange={handleAvatarFileChange} />
-              </div>
-              <div className="flex-grow">
-                <p className="text-sm font-bold mb-3">Choose from default avatars</p>
-                <div className="flex flex-wrap gap-3">
-                  {DEFAULT_AVATARS.map((src, i) => (
-                    <button
-                      type="button"
-                      key={i}
-                      onClick={() => setAvatarUrl(src)}
-                      className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all relative ${avatarUrl === src ? 'border-black scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                    >
-                      <img src={src} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      {avatarUrl === src && (
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                          <Check size={16} className="text-white" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-400 mt-4">Or click the camera to upload your own image (jpg, png, gif — max 10MB)</p>
-              </div>
+              ))}
             </div>
+            <p className="text-xs text-gray-400 mt-4">Select an avatar from the default collection. If none is selected, one will be automatically generated based on your email.</p>
           </CardContent>
         </Card>
 

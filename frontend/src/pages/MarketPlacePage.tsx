@@ -40,6 +40,7 @@ export default function MarketPlacePage() {
   const [selectedCondition, setSelectedCondition] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [page, setPage] = useState(1);
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [total, setTotal] = useState(0);
@@ -52,6 +53,7 @@ export default function MarketPlacePage() {
     condition?: string;
     min?: string;
     max?: string;
+    page?: number;
   }) => {
     setIsLoading(true);
     setErrorMessage('');
@@ -63,12 +65,15 @@ export default function MarketPlacePage() {
       const cond = params?.condition ?? selectedCondition;
       const min = params?.min ?? minPrice;
       const max = params?.max ?? maxPrice;
+      const p = params?.page ?? page;
 
       if (search.trim()) query.set('search', search.trim());
       if (cat) query.set('category', cat);
       if (cond) query.set('condition', cond);
       if (min) query.set('minPrice', min);
       if (max) query.set('maxPrice', max);
+      query.set('page', p.toString());
+      query.set('limit', '8');
 
       const response = await fetch(`${API_BASE_URL}/marketplace?${query.toString()}`);
       if (!response.ok) {
@@ -94,11 +99,15 @@ export default function MarketPlacePage() {
 
   // Re-fetch whenever filter chips change
   useEffect(() => {
-    void loadListings();
+    setPage(1);
+    void loadListings({ page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, selectedCondition]);
 
-  const handleSearch = () => void loadListings();
+  const handleSearch = () => {
+    setPage(1);
+    void loadListings({ page: 1 });
+  };
 
   const handleClearFilters = () => {
     setSearchQuery('');
@@ -106,10 +115,12 @@ export default function MarketPlacePage() {
     setSelectedCondition('');
     setMinPrice('');
     setMaxPrice('');
-    void loadListings({ search: '', category: '', condition: '', min: '', max: '' });
+    setPage(1);
+    void loadListings({ search: '', category: '', condition: '', min: '', max: '', page: 1 });
   };
 
   const hasActiveFilters = searchQuery || selectedCategory || selectedCondition || minPrice || maxPrice;
+  const totalPages = Math.ceil(total / 8) || 1;
 
   return (
     <div className="flex flex-col">
@@ -248,10 +259,6 @@ export default function MarketPlacePage() {
               <h2 className="text-sm font-medium text-gray-500">
                 {isLoading ? 'Loading listings...' : `${total} item${total === 1 ? '' : 's'} found`}
               </h2>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-400">Newest First</span>
-                <ChevronDown size={16} className="text-gray-400" />
-              </div>
             </div>
 
             {/* Active filter chips */}
@@ -330,6 +337,14 @@ export default function MarketPlacePage() {
                 )}
               </div>
             ) : null}
+
+            {!isLoading && totalPages > 1 && (
+              <div className="flex justify-center gap-2 mt-12">
+                <Button variant="outline" disabled={page === 1} onClick={() => { setPage(p => p - 1); void loadListings({ page: page - 1 }); }}>Prev</Button>
+                <span className="flex items-center px-4 font-medium text-sm">{page} / {totalPages}</span>
+                <Button variant="outline" disabled={page === totalPages} onClick={() => { setPage(p => p + 1); void loadListings({ page: page + 1 }); }}>Next</Button>
+              </div>
+            )}
           </main>
         </div>
       </div>

@@ -42,6 +42,17 @@ export default function CreateListingPage() {
   const [wechat, setWechat] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
+
+  // Fetch user profile to auto-fill email
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/me`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(profile => {
+        if (profile?.email) setContactEmail(profile.email);
+      })
+      .catch(() => {});
+  }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -85,7 +96,8 @@ export default function CreateListingPage() {
 
   // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!title.trim() || !category || !price || !condition) return;
+    const isCategoryValid = category === 'Other' ? !!customCategory.trim() : !!category;
+    if (!title.trim() || !isCategoryValid || !price || !condition) return;
 
     setIsSubmitting(true);
     setErrorMessage('');
@@ -95,7 +107,7 @@ export default function CreateListingPage() {
       const formData = new FormData();
       formData.append('title', title.trim());
       formData.append('price', price);
-      formData.append('category', category);
+      formData.append('category', category === 'Other' ? customCategory.trim() : category);
       formData.append('condition', condition);
       if (selectedCourse) formData.append('courseCode', selectedCourse.courseCode);
       if (location.trim()) formData.append('location', location.trim());
@@ -210,13 +222,13 @@ export default function CreateListingPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="title">Listing Title</Label>
+              <Label htmlFor="title">Listing Title <span className="text-red-500">*</span></Label>
               <Input id="title" placeholder="e.g., Calculus: Early Transcendentals - 3rd Edition" className="h-11 border-gray-200" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="h-11 border-gray-200">
                     <SelectValue placeholder="Select category" />
@@ -230,8 +242,14 @@ export default function CreateListingPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {category === 'Other' && (
+                <div className="space-y-2">
+                  <Label htmlFor="custom-category">Specify Category <span className="text-red-500">*</span></Label>
+                  <Input id="custom-category" placeholder="e.g., Furniture" className="h-11 border-gray-200" value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="price">Price (NZD)</Label>
+                <Label htmlFor="price">Price (NZD) <span className="text-red-500">*</span></Label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">$</span>
                   <Input id="price" type="number" min="0" step="0.01" placeholder="0.00" className="h-11 border-gray-200 pl-8" value={price} onChange={(e) => setPrice(e.target.value)} />
@@ -241,7 +259,7 @@ export default function CreateListingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="condition">Condition</Label>
+                <Label htmlFor="condition">Condition <span className="text-red-500">*</span></Label>
                 <Select value={condition} onValueChange={setCondition}>
                   <SelectTrigger className="h-11 border-gray-200">
                     <SelectValue placeholder="Select condition" />
@@ -269,6 +287,7 @@ export default function CreateListingPage() {
                   onFocus={() => setShowCourseSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowCourseSuggestions(false), 200)}
                 />
+                <p className="text-xs text-gray-400">Please search and select the related course from the dropdown, if any.</p>
                 {showCourseSuggestions && filteredCourses.length > 0 && !selectedCourse && (
                   <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
                     {filteredCourses.map(c => (
@@ -326,8 +345,8 @@ export default function CreateListingPage() {
                 <Input id="wechat" placeholder="Your WeChat ID" className="h-11 border-gray-200" value={wechat} onChange={(e) => setWechat(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contact-email">Email</Label>
-                <Input id="contact-email" type="email" placeholder="your@email.com" className="h-11 border-gray-200" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
+                <Label htmlFor="contact-email">Email <span className="text-red-500">*</span></Label>
+                <Input id="contact-email" type="email" readOnly className="h-11 border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="contact-phone">Phone</Label>
@@ -340,7 +359,7 @@ export default function CreateListingPage() {
         <div className="flex gap-4 pt-4">
           <Button
             onClick={() => void handleSubmit()}
-            disabled={!title.trim() || !category || !price || !condition || isSubmitting || submitSuccess}
+            disabled={!title.trim() || !category || (category === 'Other' && !customCategory.trim()) || !price || !condition || (!whatsapp.trim() && !wechat.trim() && !contactEmail.trim() && !contactPhone.trim()) || isSubmitting || submitSuccess}
             className="flex-grow h-12 bg-black text-white hover:bg-gray-800 font-bold text-base"
           >
             {isSubmitting ? (
