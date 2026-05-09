@@ -4,7 +4,7 @@
   "description": "Welcome to the CS732 project. We look forward to seeing the amazing things you create this semester! This is your team's repository.",
   "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "dev": "nodemon src/app.js",
     "start": "node src/app.js"
   },
