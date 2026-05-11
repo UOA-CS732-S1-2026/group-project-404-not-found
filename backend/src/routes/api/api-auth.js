@@ -29,6 +29,12 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
+    //Add the creteria for the phone number
+    const phoneRegex = /^[0-9\-\+]+$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ error: "Invalid phone number. Only numbers are allowed." });
+    }
+
     const emailLower = email.trim().toLowerCase();
     if (!emailLower.endsWith("@aucklanduni.ac.nz") && !emailLower.endsWith("@auckland.ac.nz")) {
       return res.status(400).json({ error: "Please use your University of Auckland email address to sign up." });
@@ -38,13 +44,16 @@ router.post("/register", async (req, res) => {
     req.body.isVerified = true;
     const newUser = await createUser(req.body);
 
-    // Give 500 welcome bonus immediately
+    // Give 1000 welcome bonus immediately
     await addCreditLog({
       userId: newUser._id,
-      amount: 500,
+      amount: 1000,
       reason: "Welcome bonus",
       type: "earn",
     });
+
+    // newUser.creditBalance = (newUser.creditBalance || 0) + 1000;
+    // await newUser.save();
 
     const token = createUserJWT(newUser.email);
 
