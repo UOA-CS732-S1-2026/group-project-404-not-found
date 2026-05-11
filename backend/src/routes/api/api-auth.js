@@ -43,9 +43,6 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Please use your University of Auckland email address to sign up." });
     }
 
-    // Force isVerified to true and remove verification code logic
-    req.body.isVerified = true;
-
     const existingUser = await User.findOne({ email: emailLower });
     if (existingUser && existingUser.isVerified) {
       return res.status(400).json({ error: "Email already exists and is verified." });
@@ -82,7 +79,7 @@ router.post("/register", async (req, res) => {
     res.status(200).json({ message: "Verification code sent to your school email." });
   } catch (err) {
     console.error("Register Error:", err);
-    res.status(400).json({ error: "Failed to start registration process." });
+    res.status(400).json({ error: "Failed to start registration process.", details: err.message });
   }
 });
 
@@ -120,16 +117,16 @@ router.post("/verify-code", async (req, res) => {
 
     // Give 1000 welcome bonus immediately
     await addCreditLog({
-      userId: newUser._id,
+      userId: user._id,
       amount: 1000,
       reason: "Welcome bonus",
       type: "earn",
     });
 
-    // newUser.creditBalance = (newUser.creditBalance || 0) + 1000;
-    // await newUser.save();
+    user.creditBalance = (user.creditBalance || 0) + 1000;
+    await user.save();
 
-    const token = createUserJWT(newUser.email);
+    const token = createUserJWT(user.email);
 
     res.cookie("authToken", token, {
       httpOnly: true,
@@ -138,12 +135,12 @@ router.post("/verify-code", async (req, res) => {
       secure: isProduction,
     });
 
-    const safeUser = newUser.toObject();
+    const safeUser = user.toObject();
     delete safeUser.password;
 
     res.status(201).json({ message: "Registered", user: safeUser });
   } catch (err) {
-    res.status(400).json({ error: err.message || "Failed to register" });
+    res.status(400).json({ error: "Failed to register", details: err.message });
   }
 });
 
@@ -185,7 +182,7 @@ router.post("/login", async (req, res) => {
 
     res.json({ message: "Logged in", user: safeUser });
   } catch (err) {
-    res.status(500).json({ error: "Failed to login" });
+    res.status(500).json({ error: "Failed to login", details: err.message });
   }
 });
 
