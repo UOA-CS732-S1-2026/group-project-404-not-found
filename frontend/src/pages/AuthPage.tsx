@@ -60,12 +60,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
 
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        if (data?.status === 'verification_required') {
-          setVerifyEmailTarget(loginEmail.trim().toLowerCase());
-          setMode('verify');
-        } else {
-          setErrorMessage(data?.error ?? data?.message ?? 'Unable to log in.');
-        }
+        setErrorMessage(data?.error ?? data?.message ?? 'Unable to log in.');
         return;
       }
 
@@ -110,37 +105,9 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
         return;
       }
 
-      if (registerData?.status === 'verification_required') {
-        setVerifyEmailTarget(signupEmail.trim().toLowerCase());
-        setMode('verify');
-        setErrorMessage('');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // 2. Automatically Log in the newly registered user
-      const loginResponse = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: signupEmail.trim().toLowerCase(),
-          password: signupPassword,
-        }),
-      });
-
-      const loginData = await loginResponse.json().catch(() => null);
-      if (!loginResponse.ok) {
-        setErrorMessage(loginData?.error ?? loginData?.message ?? 'Account created, but automatic login failed. Please log in manually.');
-        setMode('login');
-        setIsSubmitting(false);
-        return;
-      }
-
-      onAuthSuccess(loginData.user);
-      navigate('/');
+      setVerifyEmailTarget(signupEmail.trim().toLowerCase());
+      setMode('verify');
+      setErrorMessage('');
     } catch {
       setErrorMessage('Unable to connect to the server.');
     } finally {
@@ -152,7 +119,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
     setIsSubmitting(true);
     setErrorMessage('');
     try {
-      const response = await fetch(`${API_BASE_URL}/verify-email`, {
+      const response = await fetch(`${API_BASE_URL}/verify-code`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -174,12 +141,7 @@ export default function AuthPage({ onAuthSuccess }: { onAuthSuccess: (user: Auth
 
   const handleResendCode = async () => {
     try {
-      await fetch(`${API_BASE_URL}/resend-verification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: verifyEmailTarget }),
-      });
-      alert('A new verification code has been sent!');
+      alert('To resend the code, please go back to the Sign Up screen and submit your information again.');
     } catch {
       alert('Failed to resend code.');
     }

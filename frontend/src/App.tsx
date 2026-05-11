@@ -168,10 +168,7 @@ function Footer() {
           <p className="text-xs text-gray-400">
             UoA Swap • University of Auckland student marketplace — Terms & Privacy
           </p>
-          <div className="flex gap-6">
-            <a href="#" className="text-gray-400 hover:text-black"><Settings size={18} /></a>
-            <a href="#" className="text-gray-400 hover:text-black"><User size={18} /></a>
-          </div>
+
         </div>
       </div>
     </footer>
