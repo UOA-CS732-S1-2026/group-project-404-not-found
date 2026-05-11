@@ -1,4 +1,6 @@
 import express from "express";
+import mongoose from "mongoose"; 
+import bcrypt from "bcrypt"; 
 import {
   findUserByEmail,
   verifyUserPassword,
@@ -6,6 +8,7 @@ import {
 } from "../../data/user-dao.js";
 import { createUserJWT } from "../../utils/jwt-utils.js";
 import { addCreditLog } from "../../data/credit-dao.js";
+import { sendVerificationEmail } from "../../utils/mailer.js";
 import User from "../../models/User.js";
 
 const router = express.Router();
@@ -42,7 +45,78 @@ router.post("/register", async (req, res) => {
 
     // Force isVerified to true and remove verification code logic
     req.body.isVerified = true;
-    const newUser = await createUser(req.body);
+
+    const existingUser = await User.findOne({ email: emailLower });
+    if (existingUser && existingUser.isVerified) {
+      return res.status(400).json({ error: "Email already exists and is verified." });
+    }
+
+    //Verify via the uni address.
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    if (existingUser && !existingUser.isVerified) {
+     
+      existingUser.username = emailLower;
+      existingUser.password = hashedPassword;
+      existingUser.upi = upi;
+      existingUser.phone = phone;
+      existingUser.verificationCode = verificationCode;
+      await existingUser.save();
+    } else {
+      await User.create({
+        username: emailLower, 
+        email: emailLower,
+        password: hashedPassword,
+        upi,
+        phone,
+        verificationCode,
+        isVerified: false,
+        creditBalance: 0,
+      });
+    }
+    
+    //send the verification code to the user's email
+    await sendVerificationEmail(emailLower, verificationCode);
+
+    res.status(200).json({ message: "Verification code sent to your school email." });
+  } catch (err) {
+    console.error("Register Error:", err);
+    res.status(400).json({ error: "Failed to start registration process." });
+  }
+});
+
+/**
+ * final step of the registration process: user submits the code they received via email.
+ * If the code is correct, we mark the user as verified and complete the registration by giving them the welcome bonus and returning the JWT.
+ */
+router.post("/verify-code", async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email?.trim() || !code?.trim()) {
+      return res.status(400).json({ error: "Invalid code or email." });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(400).json({ error: "Invalid code or email." });
+    }
+
+    const user = await User.findOne({ 
+      email: email.toLowerCase(), 
+      verificationCode: code,
+      isVerified: false 
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Invalid code or email." });
+    }
+
+    //Approve sign up
+    user.isVerified = true;
+    user.verificationCode = null; 
+    await user.save();
+
 
     // Give 1000 welcome bonus immediately
     await addCreditLog({
