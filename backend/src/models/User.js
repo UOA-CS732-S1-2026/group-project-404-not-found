@@ -44,7 +44,7 @@ const userSchema = new mongoose.Schema(
       }),
     },
 
-    creditBalance: { type: Number, default: 500 },
+    creditBalance: { type: Number, default: 0 },
 
     // Keep the same field name as current backend DAO.
     // 0 = normal user, 1 = admin
