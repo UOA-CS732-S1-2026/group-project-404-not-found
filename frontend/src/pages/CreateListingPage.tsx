@@ -297,7 +297,7 @@ export default function CreateListingPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description (Optional)</Label>
               <Textarea
                 id="description"
                 placeholder="Describe the item's condition, any highlighting, or specific pickup details..."
@@ -318,11 +318,11 @@ export default function CreateListingPage() {
             <p className="text-xs text-gray-400">Add at least one way for buyers to reach you.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <Label htmlFor="whatsapp">WhatsApp (Optional)</Label>
                 <Input id="whatsapp" placeholder="+64 21 000 0000" className="h-11 border-gray-200" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="wechat">WeChat ID</Label>
+                <Label htmlFor="wechat">WeChat ID (Optional)</Label>
                 <Input id="wechat" placeholder="Your WeChat ID" className="h-11 border-gray-200" value={wechat} onChange={(e) => setWechat(e.target.value)} />
               </div>
               <div className="space-y-2">
@@ -330,7 +330,7 @@ export default function CreateListingPage() {
                 <Input id="contact-email" type="email" placeholder="your@email.com" className="h-11 border-gray-200" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contact-phone">Phone</Label>
+                <Label htmlFor="contact-phone">Phone (Optional)</Label>
                 <Input id="contact-phone" placeholder="+64 9 000 0000" className="h-11 border-gray-200" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
               </div>
             </div>

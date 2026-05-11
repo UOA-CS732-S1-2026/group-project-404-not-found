@@ -16,7 +16,7 @@ type Course = {
   department?: string;
 };
 
-const SEMESTERS = ['2026 Semester 1', '2026 Semester 2', '2025 Semester 2', 'Summer School'];
+const SEMESTERS = ['Semester 1', 'Semester 2', 'Summer School'];
 const DEPARTMENTS = ['Computer Science', 'Mathematics', 'Engineering', 'Business', 'Arts', 'English', 'Other'];
 const FILE_TYPES = ['PDF', 'DOCX', 'PPT', 'Video', 'Image', 'Other'];
 
@@ -239,7 +239,7 @@ export default function UploadMaterialPage() {
 
             {/* Semester tags */}
             <div className="space-y-2">
-              <Label>Year / Semester</Label>
+              <Label>Year / Semester (Optional)</Label>
               <div className="flex flex-wrap gap-2">
                 {SEMESTERS.map(s => (
                   <button
@@ -256,7 +256,7 @@ export default function UploadMaterialPage() {
 
             {/* Department tags */}
             <div className="space-y-2">
-              <Label>Department</Label>
+              <Label>Department (Optional)</Label>
               <div className="flex flex-wrap gap-2">
                 {DEPARTMENTS.map(d => (
                   <button

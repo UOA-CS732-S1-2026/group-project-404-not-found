@@ -136,8 +136,6 @@ export default function CourseDetailPage() {
           <Link to={`/materials`}>
              <Button variant="outline" className="rounded-md h-10 px-6 font-medium">Find More Materials</Button>
           </Link>
-          <Button variant="outline" size="icon" className="rounded-md h-10 w-10"><Share2 size={18} /></Button>
-          <Button variant="outline" size="icon" className="rounded-md h-10 w-10"><Bookmark size={18} /></Button>
           <div className="flex-grow"></div>
           <span className="text-xs text-gray-400 self-center">Updated: {formatDisplayDate(course.updatedAt)}</span>
         </div>
