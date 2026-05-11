@@ -233,7 +233,7 @@ export default function App() {
         <Navbar currentUser={currentUser} onLogout={handleLogout} />
         <main className="flex-grow">
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<LandingPage currentUser={currentUser} />} />
             <Route path="/auth" element={<AuthPage onAuthSuccess={handleAuthSuccess} />} />
             <Route path="/courses" element={<CourseListPage />} />
             <Route path="/course/:id" element={<CourseDetailPage />} />

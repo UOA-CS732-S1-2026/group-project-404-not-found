@@ -4,7 +4,7 @@ import { BookOpen, ShoppingBag, ArrowRight, Star, Download, Upload, Search } fro
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-export default function LandingPage() {
+export default function LandingPage({ currentUser }: { currentUser?: { id: number; email: string } | null }) {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -227,9 +227,15 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-8">
           <h2 className="text-4xl font-bold">Ready to start swapping?</h2>
           <div className="flex gap-4 flex-wrap">
-            <Link to="/auth">
-              <Button className="bg-black text-white hover:bg-gray-800 px-8">Sign Up Now</Button>
-            </Link>
+            {currentUser ? (
+              <Link to="/profile">
+                <Button className="bg-black text-white hover:bg-gray-800 px-8">Go to Profile</Button>
+              </Link>
+            ) : (
+              <Link to="/auth?mode=signup">
+                <Button className="bg-black text-white hover:bg-gray-800 px-8">Sign Up Now</Button>
+              </Link>
+            )}
             <Link to="/marketplace">
               <Button variant="secondary" className="px-8">Browse Marketplace</Button>
             </Link>
