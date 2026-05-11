@@ -152,7 +152,7 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password ) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
@@ -161,6 +161,11 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    const verifiedUser = await User.findOne({ email: email.toLowerCase(), isVerified: true });
+    if (!verifiedUser) {
+      return res.status(401).json({ error: "Email not verified. Please check your inbox for the verification code." });
+    }
+    
     const valid = await verifyUserPassword(user, password);
     if (!valid) {
       return res.status(401).json({ error: "Invalid email or password" });
