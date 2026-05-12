@@ -44,19 +44,24 @@ UoaSwap is a centralized, user-friendly platform designed specifically for Unive
 * MongoDB instance
 
 ### Setup Instructions
-```bash
-# 1. Clone the repository
-git clone [https://github.com/UOA-CS732-S1-2026/group-project-404-not-found](https://github.com/UOA-CS732-S1-2026/group-project-404-not-found)
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/UOA-CS732-S1-2026/group-project-404-not-found](https://github.com/UOA-CS732-S1-2026/group-project-404-not-found)
 
-# 2. Install ALL dependencies (Backend & Frontend)
-cd backend && npm install && cd ../frontend && npm install && cd ..
+2. Install dependencies:
+# Install Backend dependencies
+cd backend
+npm install
 
-# 3. How to Run
-# Start Backend (Open a terminal)
-cd backend && npm start
+# Install Frontend dependencies
+cd ../frontend
+npm install
 
-# Start Frontend (Open another terminal)
-cd frontend && npm run dev
+3. Install dependencies:
+# Start Backend
+npm start
+# Start Frontend
+npm run dev
 
 Test Accounts
 To test the administrative features and role-based access, you may use the following credentials:
