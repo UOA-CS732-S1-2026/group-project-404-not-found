@@ -1,4 +1,4 @@
-UoaSwap: University of Auckland Campus Resource Integration Platform
+# UoaSwap: University of Auckland Campus Resource Integration Platform
 
 UoaSwap is a centralized, user-friendly platform designed specifically for University of Auckland (UoA) students. It integrates a second-hand marketplace with an academic resource-sharing ecosystem to enhance information accessibility and resource efficiency within the student community.
 
@@ -69,9 +69,7 @@ Installation and Setup
 
 ### Setup Instructions
 
-1.  Clone the repository:
-
-    `git clone https://github.com/UOA-CS732-S1-2026/group-project-404-not-found`
+1.  Clone the repository
 
 2.  Install dependencies:
 
