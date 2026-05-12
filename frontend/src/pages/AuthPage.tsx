@@ -34,7 +34,7 @@ export default function AuthPage({
   const [searchParams] = useSearchParams();
   const initialMode =
     searchParams.get("mode") === "signup" ? "signup" : "login";
-  const [mode, setMode] = useState<"login" | "signup" | "verify">(
+  const [mode, setMode] = useState<"login" | "signup">(
     initialMode as any,
   );
   const [showPassword, setShowPassword] = useState(false);
@@ -53,9 +53,7 @@ export default function AuthPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Verify State
-  const [verifyEmailTarget, setVerifyEmailTarget] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
+
 
   // ✅ Google Login authentication status
   const [googleVerified, setGoogleVerified] = useState(false);
@@ -156,33 +154,6 @@ export default function AuthPage({
         setIsSubmitting(false);
         return;
       }
-      setVerifyEmailTarget(signupEmail.trim().toLowerCase());
-      setMode("verify");
-    } catch {
-      setErrorMessage("Cannot connect to server");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    setIsSubmitting(true);
-    setErrorMessage("");
-    try {
-      const res = await fetch(`${API_BASE_URL}/verify-code`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: verifyEmailTarget,
-          code: verificationCode,
-        }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setErrorMessage(data?.error ?? "Invalid code");
-        return;
-      }
       onAuthSuccess(data.user);
       navigate("/");
     } catch {
@@ -192,9 +163,7 @@ export default function AuthPage({
     }
   };
 
-  const handleResendCode = () => {
-    alert("Please go back and submit signup again to resend code.");
-  };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -290,80 +259,6 @@ export default function AuthPage({
                         className="font-bold hover:underline"
                       >
                         Create Account
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ) : mode === "verify" ? (
-              <motion.div
-                key="verify"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card className="border-none shadow-none">
-                  <CardHeader className="space-y-1 pb-8">
-                    <CardTitle className="text-3xl font-bold">
-                      Check your email
-                    </CardTitle>
-                    <p className="text-sm text-gray-500 mt-2">
-                      We sent a code to{" "}
-                      <span className="font-bold text-black">
-                        {verifyEmailTarget}
-                      </span>
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {errorMessage && (
-                      <p className="text-sm text-red-500">{errorMessage}</p>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="code">Verification Code</Label>
-                      <Input
-                        id="code"
-                        type="text"
-                        placeholder="123456"
-                        className="h-12 text-center font-bold tracking-widest"
-                        value={verificationCode}
-                        onChange={(e) =>
-                          setVerificationCode(
-                            e.target.value.replace(/\D/g, "").slice(0, 6),
-                          )
-                        }
-                        onKeyDown={(e) =>
-                          e.key === "Enter" &&
-                          verificationCode.length === 6 &&
-                          handleVerify()
-                        }
-                      />
-                    </div>
-                    <Button
-                      className="w-full h-12 bg-black text-white hover:bg-gray-800 font-bold"
-                      onClick={handleVerify}
-                      disabled={isSubmitting || verificationCode.length !== 6}
-                    >
-                      {isSubmitting ? "Verifying..." : "Verify Email"}
-                    </Button>
-                    <div className="text-center text-sm flex flex-col gap-2">
-                      <span>
-                        No email?{" "}
-                        <button
-                          onClick={handleResendCode}
-                          className="font-bold hover:underline"
-                        >
-                          Resend
-                        </button>
-                      </span>
-                      <button
-                        onClick={() => {
-                          setErrorMessage("");
-                          setMode("login");
-                        }}
-                        className="text-gray-500 hover:underline"
-                      >
-                        Back to Login
                       </button>
                     </div>
                   </CardContent>
