@@ -1,101 +1,106 @@
-# UoaSwap: University of Auckland Campus Resource Integration Platform
+UoaSwap: University of Auckland Campus Resource Integration Platform
 
 UoaSwap is a centralized, user-friendly platform designed specifically for University of Auckland (UoA) students. It integrates a second-hand marketplace with an academic resource-sharing ecosystem to enhance information accessibility and resource efficiency within the student community.
 
----
+Project Overview
+----------------
 
-## Project Overview
+-   **Objective**: To create a trusted environment where students can trade physical goods, share study materials, and access course information in one place.
 
-- **Objective**: To create a trusted environment where students can trade physical goods, share study materials, and access course information in one place.
-- **Core Value**: Unlike general platforms, UoaSwap is tailored to the UoA academic structure, featuring a points-based economy to incentivize high-quality material sharing.
+-   **Core Value**: Unlike general platforms, UoaSwap is tailored to the UoA academic structure, featuring a points-based economy to incentivize high-quality material sharing.
 
----
+Key Features
+------------
 
-## Key Features
+### 1\. User Authentication & Profile
 
-### 1. User Authentication & Profile
+-   **Verified Access**: Secure login via Google OAuth restricted to UoA email addresses, ensuring a trusted student-only environment.
 
-- Verified login via Google OAuth (UoA emails only)
-- New users receive 1,000 starting points
-- Profile management for uploads, listings, and personal info
+-   **Incentivized Onboarding**: New users receive an initial credit of 1,000 points to encourage immediate engagement.
 
----
+-   **Profile**: A dedicated section for users to manage their personal information, uploaded materials, and marketplace listings.
 
-### 2. Administrative Capabilities
+### 2\. Administrative Capabilities
 
-- Role-Based Access Control (RBAC)
-- Admin dashboard for content moderation and management
-- Admin features only visible to authorized users
+-   **Role-Based Access Control (RBAC)**: The system distinguishes between students and administrators to maintain platform integrity.
 
----
+-   **Admin Dashboard**: Authenticated admins can access a web-based management interface to moderate content and resolve disputes.
 
-### 3. Material Sharing (Points System)
+-   **Content Moderation**: Features and management pages are conditionally displayed based on the user's role, allowing only authorized users to interact with administrative tools.
 
-- Upload PDF/DOCX files with integrity declaration → earn 500 points
-- Spend points to download peer materials
-- Reporting system for inappropriate content
+### 3\. Material Sharing (Points-Based Economy)
 
----
+-   **Contribution Loop**: Users earn 500 points by uploading PDF/Docx files accompanied by an Academic Integrity Declaration.
 
-### 4. Campus Marketplace (Cash-Based)
+-   **Resource Access**: A sustainable "upload-to-download" cycle where users spend points to access peer-shared materials.
 
-- Trade textbooks, labwear, electronics, etc.
-- Offline transactions via contact methods (WhatsApp/WeChat)
+-   **Reporting System**: Enables users to flag low-quality or inappropriate materials. Admins can review these reports to edit or remove the flagged posts to ensure content quality.
 
----
+### 4\. Campus Marketplace (Cash-Based)
 
-### 5. Course Hub
+-   **Physical Trade**: Facilitates the exchange of campus essentials such as textbooks, labwear, and electronics.
 
-- Search courses by code (e.g., CS732)
-- Centralized course pages with materials and listings
+-   **Offline Completion**: Serves as a communication bridge where transactions are finalized offline via integrated contact details such as WeChat or WhatsApp.
 
----
+### 5\. Course Hub
 
-## Technology Stack
+-   **Standardized Discovery**: Search for specific courses by code (e.g., CS732) or name.
 
-- Frontend: React, React Router, Vite, TinyMCE  
-- Backend: Node.js, Express  
-- Database: MongoDB  
-- Security: JWT, bcryptjs  
+-   **Dedicated Landing Pages**: Aggregates course metadata, specific study materials, and relevant marketplace listings into a single view.
 
----
+Technology Stack
 
-## Installation and Setup
+-   **Frontend**: React, React Router, Vite, TinyMCE.
+
+-   **Backend**: Node.js, Express.
+
+-   **Database**: MongoDB (NoSQL).
+
+-   **Security**: JWT for stateless authentication and bcryptjs for password encryption.
+
+Installation and Setup
+----------------------
 
 ### Prerequisites
 
-- Node.js v18+
-- MongoDB
+-   Node.js (v18.x or higher)
 
-### Setup
+-   MongoDB instance
 
-```bash
-git clone https://github.com/UOA-CS732-S1-2026/group-project-404-not-found
+### Setup Instructions
 
-cd backend
-npm install
+1.  Clone the repository:
 
-cd ../frontend
-npm install
-Run
-cd backend
-npm start
+    `git clone https://github.com/UOA-CS732-S1-2026/group-project-404-not-found`
 
-cd frontend
-npm run dev
+2.  Install dependencies:
+
+    -   **Backend**: `cd backend && npm install`
+
+    -   **Frontend**: `cd frontend && npm install`
+
+3.  Run the application:
+
+    -   **Backend**: `npm start`
+
+    -   **Frontend**: `npm run dev`
+
 Test Accounts
-Admin: sky@aucklanduni.ac.nz
-Password: sky123
-Access: Full admin permissions
+-------------
+
+To test the administrative features and role-based access, you may use the following credentials:
+
+-   **Admin Account**: sky@aucklanduni.ac.nz
+
+-   **Password**: sky123
+
+-   **Access Level**: Full access to the /admin page and management tools.
+
 Team & Management
+-----------------
 
-Developed using Agile Scrum over a 7-week sprint.
+This project was developed using an Agile Scrum-based workflow over a 7-week sprint cycle.
 
-Team Members: Yuning Fan, Wei Wang, Theresa Zhu, Xiting Li, Junxi Chen, Seul Lee
+-   **Team Members**: Yuning Fan, Wei Wang, Theresa Zhu, Xiting Li, Junxi Chen, Seul Lee.
 
-Documentation (GitHub Wiki):
-
-Meeting minutes
-Task breakdown (WBS)
-Role assignments
-Development notes
+-   **Project Documentation**: Please refer to our **GitHub Wiki** for meeting minutes, detailed task breakdowns (WBS), and role assignments.
