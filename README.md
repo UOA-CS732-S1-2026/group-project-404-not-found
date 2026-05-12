@@ -1,17 +1,75 @@
-# CS732 project - Team 404 NOT FOUND
+# UoaSwap: University of Auckland Campus Resource Integration Platform
 
-Welcome to the CS732 project. We look forward to seeing the amazing things you create this semester! This is your team's repository.
+UoaSwap is a centralized, user-friendly platform designed specifically for University of Auckland (UoA) students. It integrates a second-hand marketplace with an academic resource-sharing ecosystem to enhance information accessibility and resource efficiency within the student community.
 
-Your team members are:
-- Junxi Chen _(jehc242@aucklanduni.ac.nz)_
-- Wei Wang _(wwan509@aucklanduni.ac.nz)_
-- Yuning Fan _(yfan707@aucklanduni.ac.nz)_
-- Seul Lee _(else568@aucklanduni.ac.nz)_
-- Xiting Li _(qli237@aucklanduni.ac.nz)_
-- Theresa Zhu _(yzhu716@aucklanduni.ac.nz)_
+## Project Overview
+* **Objective**: To create a trusted environment where students can trade physical goods, share study materials, and access course information in one place.
+* **Core Value**: Unlike general platforms, UoaSwap is tailored to the UoA academic structure, featuring a points-based economy to incentivize high-quality material sharing.
 
-You have complete control over how you run this repo. All your members will have admin access. The only thing setup by default is branch protections on `main`, requiring a PR with at least one code reviewer to modify `main` rather than direct pushes.
+## Key Features
 
-Please use good version control practices, such as feature branching, both to make it easier for markers to see your group's history and to lower the chances of you tripping over each other during development
+### 1. User Authentication & Profile
+* **Verified Access**: Secure login via Google OAuth restricted to UoA email addresses, ensuring a trusted student-only environment.
+* **Incentivized Onboarding**: New users receive an initial credit of 1,000 points to encourage immediate engagement.
+* **Profile**: A dedicated section for users to manage their personal information, uploaded materials, and marketplace listings.
 
-![](./404%20NOT%20FOUND.png)
+### 2. Administrative Capabilities
+* **Role-Based Access Control (RBAC)**: The system distinguishes between students and administrators to maintain platform integrity.
+* **Admin Dashboard**: Authenticated admins can access a web-based management interface to moderate content and resolve disputes.
+* **Content Moderation**: Features and management pages are conditionally displayed based on the user's role, allowing only authorized users to interact with administrative tools.
+
+### 3. Material Sharing (Points-Based Economy)
+* **Contribution Loop**: Users earn 500 points by uploading PDF/Docx files accompanied by an Academic Integrity Declaration.
+* **Resource Access**: A sustainable "upload-to-download" cycle where users spend points to access peer-shared materials.
+* **Reporting System**: Enables users to flag low-quality or inappropriate materials. Admins can review these reports to edit or remove the flagged posts to ensure content quality.
+
+### 4. Campus Marketplace (Cash-Based)
+* **Physical Trade**: Facilitates the exchange of campus essentials such as textbooks, labwear, and electronics.
+* **Offline Completion**: Serves as a communication bridge where transactions are finalized offline via integrated contact details such as WeChat or WhatsApp.
+
+### 5. Course Hub
+* **Standardized Discovery**: Search for specific courses by code (e.g., CS732) or name.
+* **Dedicated Landing Pages**: Aggregates course metadata, specific study materials, and relevant marketplace listings into a single view.
+
+## Technology Stack
+* **Frontend**: React, React Router, Vite, TinyMCE.
+* **Backend**: Node.js, Express.
+* **Database**: MongoDB (NoSQL).
+* **Security**: JWT for stateless authentication and bcryptjs for password encryption.
+
+## Installation and Setup
+
+### Prerequisites
+* Node.js (v18.x or higher)
+* MongoDB instance
+
+### Setup Instructions
+```bash
+# 1. Clone the repository
+git clone [https://github.com/UOA-CS732-S1-2026/group-project-404-not-found](https://github.com/UOA-CS732-S1-2026/group-project-404-not-found)
+
+# 2. Install ALL dependencies (Backend & Frontend)
+cd backend && npm install && cd ../frontend && npm install && cd ..
+
+# 3. How to Run
+# Start Backend (Open a terminal)
+cd backend && npm start
+
+# Start Frontend (Open another terminal)
+cd frontend && npm run dev
+
+Test Accounts
+To test the administrative features and role-based access, you may use the following credentials:
+
+Admin Account: sky@aucklanduni.ac.nz
+
+Password: sky123
+
+Access Level: Full access to the /admin page and management tools.
+
+Team & Management
+This project was developed using an Agile Scrum-based workflow over a 7-week sprint cycle.
+
+Team Members: Yuning Fan, Wei Wang, Theresa Zhu, Xiting Li, Junxi Chen, Seul Lee.
+
+Project Documentation: Please refer to our GitHub Wiki for meeting minutes, detailed task breakdowns (WBS), and role assignments.
