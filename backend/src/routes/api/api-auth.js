@@ -8,7 +8,6 @@ import {
 } from "../../data/user-dao.js";
 import { createUserJWT } from "../../utils/jwt-utils.js";
 import { addCreditLog } from "../../data/credit-dao.js";
-import { sendVerificationEmail } from "../../utils/mailer.js";
 import User from "../../models/User.js";
 
 const router = express.Router();
@@ -32,7 +31,6 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
-    //Add the creteria for the phone number
     const phoneRegex = /^[0-9\-\+]+$/;
     if (!phoneRegex.test(phone)) {
       return res.status(400).json({ error: "Invalid phone number. Only numbers are allowed." });
@@ -44,44 +42,55 @@ router.post("/register", async (req, res) => {
     }
 
     const existingUser = await User.findOne({ email: emailLower });
-    if (existingUser && existingUser.isVerified) {
-      return res.status(400).json({ error: "Email already exists and is verified." });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already exists." });
     }
 
-    //Verify via the uni address.
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Directly encrypt the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    if (existingUser && !existingUser.isVerified) {
-     
-      existingUser.username = emailLower;
-      existingUser.password = hashedPassword;
-      existingUser.upi = upi;
-      existingUser.phone = phone;
-      existingUser.verificationCode = verificationCode;
-      await existingUser.save();
-    } else {
-      await User.create({
-        username: emailLower, 
-        email: emailLower,
-        password: hashedPassword,
-        upi,
-        phone,
-        verificationCode,
-        isVerified: false,
-        creditBalance: 0,
-      });
-    }
-    
-    //send the verification code to the user's email
-    await sendVerificationEmail(emailLower, verificationCode);
+    const user = await User.create({
+      username: emailLower,
+      email: emailLower,
+      password: hashedPassword,
+      upi,
+      phone,
+      isVerified: true, 
+      creditBalance: 0,
+    });
 
-    res.status(200).json({ message: "Verification code sent to your school email." });
+    // Get 1,000 points straight away
+    await addCreditLog({
+      userId: user._id,
+      amount: 1000,
+      reason: "Welcome bonus",
+      type: "earn",
+    });
+    user.creditBalance += 1000;
+    await user.save();
+
+    // ✅ Returns the token directly; login successful
+    const token = createUserJWT(user.email);
+    res.cookie("authToken", token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+    });
+
+    const safeUser = user.toObject();
+    delete safeUser.password;
+
+    res.status(201).json({
+      message: "Registration successful",
+      user: safeUser,
+    });
   } catch (err) {
     console.error("Register Error:", err);
-    res.status(400).json({ error: "Failed to start registration process.", details: err.message });
+    res.status(400).json({ error: "Registration failed", details: err.message });
   }
 });
+
 
 /**
  * final step of the registration process: user submits the code they received via email.
