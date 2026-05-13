@@ -240,7 +240,7 @@ router.delete("/:id", requiresAuthentication, async (req, res) => {
     }
 
     const success = await deleteItemById(itemId);
-    if (success) return res.status(204).json({ message: "Listing deleted successfully" });
+    if (success) return res.sendStatus(204);
 
     return res.status(404).json({ error: "Listing not found during deletion" });
   } catch (err) {
