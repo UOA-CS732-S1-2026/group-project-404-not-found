@@ -107,8 +107,15 @@ The backend includes automated **unit and integration tests** built with Node.js
 
 ### Running Tests
 
+**Backend Tests:**
 ```bash
 cd backend
+npm test
+```
+
+**Frontend Tests:**
+```bash
+cd frontend
 npm test
 ```
 
