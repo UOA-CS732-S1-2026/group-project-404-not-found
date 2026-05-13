@@ -4,6 +4,11 @@
 .DS_Store
 node_modules
 
+# Build output files - DO NOT commit
+frontend/dist
+backend/dist
+dist
+
 # Environment variables - Edit if necessary
 .env
 .env.*
