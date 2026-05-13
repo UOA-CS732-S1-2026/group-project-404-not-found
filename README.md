@@ -1,5 +1,7 @@
 # UoaSwap: University of Auckland Campus Resource Integration Platform
 
+**🌐 Live Demo:** [https://group-project-404-not-found.vercel.app/](https://group-project-404-not-found.vercel.app/)
+
 UoaSwap is a centralized, user-friendly platform designed specifically for University of Auckland (UoA) students. It integrates a second-hand marketplace with an academic resource-sharing ecosystem to enhance information accessibility and resource efficiency within the student community.
 
 Project Overview
@@ -123,6 +125,8 @@ Deployment
 ----------
 
 The application is fully deployed and accessible online:
+
+-   **Live Website**: [https://group-project-404-not-found.vercel.app/](https://group-project-404-not-found.vercel.app/)
 
 -   **Frontend**: Hosted on [Vercel](https://vercel.com) (auto-deploys from `main` branch)
 
