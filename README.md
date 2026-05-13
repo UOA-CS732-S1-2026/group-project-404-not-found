@@ -79,20 +79,9 @@ Installation and Setup
 
 3.  Configure environment variables:
 
-    -   **Backend**: Create a `.env` file inside the `backend/` directory:
+    -   **Backend**: Duplicate the `backend/.env.example` file and rename it to `.env`. Fill in your actual MongoDB connection string and JWT secret.
 
-        ```env
-        MONGODB_URI=<your-mongodb-connection-string>
-        JWT_SECRET=<your-jwt-secret>
-        FRONTEND_ORIGIN=http://localhost:3000
-        BASE_URL=http://localhost:3001
-        ```
-
-    -   **Frontend**: Create a `.env` file inside the `frontend/` directory:
-
-        ```env
-        VITE_API_BASE_URL=http://localhost:3001
-        ```
+    -   **Frontend**: Duplicate the `frontend/.env.example` file and rename it to `.env`. Update the `VITE_API_BASE_URL` if needed.
 
 4.  Run the application:
 
