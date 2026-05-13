@@ -1,5 +1,4 @@
 import express from "express";
-import mongoose from "mongoose"; 
 import bcrypt from "bcrypt"; 
 import {
   findUserByEmail,
@@ -88,68 +87,6 @@ router.post("/register", async (req, res) => {
   } catch (err) {
     console.error("Register Error:", err);
     res.status(400).json({ error: "Registration failed", details: err.message });
-  }
-});
-
-
-/**
- * final step of the registration process: user submits the code they received via email.
- * If the code is correct, we mark the user as verified and complete the registration by giving them the welcome bonus and returning the JWT.
- */
-router.post("/verify-code", async (req, res) => {
-  try {
-    const { email, code } = req.body;
-
-    if (!email?.trim() || !code?.trim()) {
-      return res.status(400).json({ error: "Invalid code or email." });
-    }
-
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(400).json({ error: "Invalid code or email." });
-    }
-
-    const user = await User.findOne({ 
-      email: email.toLowerCase(), 
-      verificationCode: code,
-      isVerified: false 
-    });
-
-    if (!user) {
-      return res.status(400).json({ error: "Invalid code or email." });
-    }
-
-    //Approve sign up
-    user.isVerified = true;
-    user.verificationCode = null; 
-    await user.save();
-
-
-    // Give 1000 welcome bonus immediately
-    await addCreditLog({
-      userId: user._id,
-      amount: 1000,
-      reason: "Welcome bonus",
-      type: "earn",
-    });
-
-    user.creditBalance = (user.creditBalance || 0) + 1000;
-    await user.save();
-
-    const token = createUserJWT(user.email);
-
-    res.cookie("authToken", token, {
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
-    });
-
-    const safeUser = user.toObject();
-    delete safeUser.password;
-
-    res.status(201).json({ message: "Registered", user: safeUser });
-  } catch (err) {
-    res.status(400).json({ error: "Failed to register", details: err.message });
   }
 });
 

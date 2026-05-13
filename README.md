@@ -77,11 +77,64 @@ Installation and Setup
 
     -   **Frontend**: `cd frontend && npm install`
 
-3.  Run the application:
+3.  Configure environment variables:
 
-    -   **Backend**: `npm start`
+    -   **Backend**: Create a `.env` file inside the `backend/` directory:
 
-    -   **Frontend**: `npm run dev`
+        ```env
+        MONGODB_URI=<your-mongodb-connection-string>
+        JWT_SECRET=<your-jwt-secret>
+        FRONTEND_ORIGIN=http://localhost:3000
+        BASE_URL=http://localhost:3001
+        ```
+
+    -   **Frontend**: Create a `.env` file inside the `frontend/` directory:
+
+        ```env
+        VITE_API_BASE_URL=http://localhost:3001
+        ```
+
+4.  Run the application:
+
+    -   **Backend**: `cd backend && npm start`
+
+    -   **Frontend**: `cd frontend && npm run dev`
+
+Testing
+-------
+
+The backend includes automated **unit and integration tests** built with Node.js's native `node:test` module (zero external test dependencies).
+
+### Running Tests
+
+```bash
+cd backend
+npm test
+```
+
+### Test Coverage
+
+| Module | Test Type | What's Tested |
+|---|---|---|
+| **Authentication** (`auth.test.js`) | Unit + Integration | Registration validation, login validation, cookie structure, UoA email enforcement |
+| **Courses** (`course.test.js`) | Unit + Integration | Route structure, query parameters, error responses, 404 handling |
+| **Marketplace** (`marketplace.test.js`) | Integration | 404 handling, authentication-protected CRUD operations |
+| **Materials** (`material.test.js`) | Integration | 404 handling, unauthenticated upload/download rejection |
+
+Tests use a custom lightweight test server (`tests/setup.js`) that auto-assigns ports and auto-cleans up after each test run.
+
+Deployment
+----------
+
+The application is fully deployed and accessible online:
+
+-   **Frontend**: Hosted on [Vercel](https://vercel.com) (auto-deploys from `main` branch)
+
+-   **Backend**: Hosted on [Render](https://render.com) (auto-deploys from `main` branch)
+
+-   **Database**: MongoDB Atlas (cloud-hosted NoSQL database)
+
+-   **File Storage**: MongoDB GridFS (cloud-based file storage for user uploads)
 
 Test Accounts
 -------------
